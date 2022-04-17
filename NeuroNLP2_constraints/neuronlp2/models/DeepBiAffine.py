@@ -1,9 +1,7 @@
-from overrides import overrides
-from enum import Enum
+
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from neuronlp2.nn import TreeCRF, VarGRU, VarRNN, VarLSTM, VarFastLSTM
+from neuronlp2.nn import VarGRU, VarRNN, VarLSTM, VarFastLSTM
 from neuronlp2.nn import BiAffine, BiLinear, CharCNN
 from neuronlp2.tasks import parser
 from torch import nn
