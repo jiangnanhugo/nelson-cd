@@ -1,6 +1,5 @@
 from itertools import cycle
 import numpy as np
-from numba import njit
 import itertools
 
 
@@ -12,20 +11,21 @@ def get_cycle(parents):
         if new_cur not in visited:
             visited.add(new_cur)
             stack.append(new_cur)
-            dfs(new_cur, parents, stack)
+            return dfs(new_cur, parents, stack)
         elif new_cur in stack:
-            print('find cycle')
-            return stack
-        else:
-            print("return nothing")
-            return None
+            thecycle=[new_cur]
+            for i in range(len(stack)-1, -1, -1):
+                if stack[i] == new_cur:
+                    break
+                thecycle.append(stack[i])
+            print('find cycle:', thecycle)
+            return thecycle
+        
     vertices_in_cycles=[]
     for cur in range(len(parents)):
         if cur not in visited:
             visited.add(cur)
-            stack=list()
-            stack.append(cur)
-            ret=dfs(cur, parents, stack)
+            ret=dfs(cur, parents, [cur])
             if ret!=None:
                 vertices_in_cycles.append(ret)
     return vertices_in_cycles
@@ -36,7 +36,7 @@ def partial_reject_sampling(phi_matrix, num_of_nodes):
     diag_mask = 1.0 - np.eye(num_of_nodes)
     phi_matrix = phi_matrix * diag_mask
 
-    @njit
+    # @njit
     def choose_outgoing_edge_randomly(adj_matrix):
         # sample the outgoing edges with probability proportional to the edge weight
         sumed = np.sum(adj_matrix, axis=1)
@@ -52,6 +52,7 @@ def partial_reject_sampling(phi_matrix, num_of_nodes):
         for c, r in zip(candidates, resampled):
             # update the resampled edges into the global parent array
             par[c]=r
+        print("new assingment:", par)
         # check if the parent array contains any cycles
         vertices_in_cycles = get_cycle(par)
         print("cycle detection:", vertices_in_cycles)
@@ -60,6 +61,7 @@ def partial_reject_sampling(phi_matrix, num_of_nodes):
             break
         # extract the vertices that require to be resampled
         candidates = list(itertools.chain(*vertices_in_cycles))
+        candidates = list(set(candidates))
 
     print("spanning tree output:", par)
     return par
@@ -86,9 +88,8 @@ def get_random_graph(N=10, dim=1):
     return data, theta
 
 if __name__ == '__main__':
-    graph_dim = 10
-    data, theta = get_random_graph(graph_dim)
+    graph_dim = 6
+    data, theta = get_random_graph(N=graph_dim)
     # The following part is used to estimate the $ nabla log Z $ via sampling 
     
-    for _ in range(10):
-        spanning_tree = partial_reject_sampling(data, graph_dim)
+    spanning_tree = partial_reject_sampling(data, graph_dim)
