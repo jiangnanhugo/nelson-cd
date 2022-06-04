@@ -1,0 +1,5 @@
+Random solver
+Counter({1: 6972, 2: 2131, 3: 631, 4: 184, 5: 63, 6: 16, 7: 2, 8: 1})
+
+Lovasz Sequential solver
+Counter({1: 6999, 2: 2268, 3: 601, 4: 108, 5: 20, 7: 2, 6: 2})
