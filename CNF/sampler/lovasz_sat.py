@@ -1,9 +1,9 @@
 from collections import defaultdict
 import random
 import numpy as np
+
 MAX = 1000000
 import torch
-
 
 
 def constructive_lovasz_local_lemma_sampler(instance, values=[1, 0]):
@@ -20,22 +20,21 @@ def constructive_lovasz_local_lemma_sampler(instance, values=[1, 0]):
     # start with a random assignment for all variables.
     assignment = [random.choice(values)
                   for _ in range(len(instance.variables))]
-    for it in range(MAX*number_clauses):
+    for it in range(MAX * number_clauses):
         # find the first violated clauses.
         violated_clause = None
         for clause in instance.clauses:
             if not is_satisfied(clause, assignment):
                 violated_clause = clause
                 break
-        if violated_clause == None:
-            return (assignment, it + 1)
+        if not violated_clause:
+            return assignment, it + 1
         # Resample the variable
         for number in violated_clause:
             var = number >> 1
             assignment[var] = random.choice(values)
-            
-    
-    return None, MAX*number_clauses
+
+    return None, MAX * number_clauses
 
 
 def conditioned_partial_rejection_sampling_sampler(instance, values=[1, 0]):
@@ -54,7 +53,7 @@ def conditioned_partial_rejection_sampling_sampler(instance, values=[1, 0]):
     # start with a random assignment for all variables.
     assignment = [random.choice(values)
                   for _ in range(len(instance.variables))]
-    for it in range(MAX*number_clauses):
+    for it in range(MAX * number_clauses):
         # find all the violated clauses.
         violated_clauses = []
         for clause in instance.clauses:
@@ -62,18 +61,18 @@ def conditioned_partial_rejection_sampling_sampler(instance, values=[1, 0]):
                 violated_clauses.append(clause)
 
         if len(violated_clauses) == 0:
-            return (assignment, it + 1)
-        
+            return assignment, it + 1
+
         # Resample the variable
         all_vars = set()
         for clause in violated_clauses:
-            for number in clause: 
+            for number in clause:
                 var = number >> 1
                 all_vars.add(var)
 
         for var in list(all_vars):
             assignment[var] = random.choice(values)
-    return None, MAX*number_clauses
+    return None, MAX * number_clauses
 
 
 def general_partial_rejection_sampling_sampler(instance, values=[1, 0]):
@@ -92,7 +91,7 @@ def general_partial_rejection_sampling_sampler(instance, values=[1, 0]):
     # start with a random assignment for all variables.
     assignment = [random.choice(values)
                   for _ in range(len(instance.variables))]
-    for it in range(MAX*number_clauses):
+    for it in range(MAX * number_clauses):
         # find the first violated clauses.
         violated_clauses = []
         for clause in instance.clauses:
@@ -100,18 +99,19 @@ def general_partial_rejection_sampling_sampler(instance, values=[1, 0]):
                 violated_clauses.append(clause)
 
         if len(violated_clauses) == 0:
-            return (assignment, it + 1)
-        
+            return assignment, it + 1
+
         # Resample the variable
         all_vars = set()
         for clause in violated_clauses:
-            for number in clause: 
+            for number in clause:
                 var = number >> 1
                 all_vars.add(var)
 
         for var in list(all_vars):
             assignment[var] = random.choice(values)
-    return None, MAX*number_clauses
+    return None, MAX * number_clauses
+
 
 def is_satisfied(clause, assignment):
     for number in clause:
@@ -122,36 +122,37 @@ def is_satisfied(clause, assignment):
     return False
 
 
-def pyotrch_conditioned_partial_rejection_sampling_sampler(instance):
+def pytorch_conditioned_partial_rejection_sampling_sampler(instance, prob=0.5):
     """
-    Implementation of Neural Lovasz Sampler using Pytorch , with extreme condition for the input SAT-CNF.
+    Implementation of Neural Lovasz Sampler using Pytorch, with extreme condition for the input SAT-CNF.
     We start with a random assignment for all variables. Then, we find the all the violated clauses,
     and resample the variables in all those clause (assigning a new values to each of them IID).
     We repeat the process until we find a valid assignment.
     """
     number_clauses = len(instance.clauses)
     clause2var, weight, bias = instance.get_formular_matrix_form()
-    clause2var, weight, bias  = torch.from_numpy(clause2var), torch.from_numpy(weight), torch.from_numpy(bias)
+    clause2var, weight, bias = torch.from_numpy(clause2var), torch.from_numpy(weight), torch.from_numpy(bias)
     # start with a random assignment for all variables.
-    assignment = torch.randint(low=0, high=2, size=(len(instance.variables),))
-    
-    for it in range(MAX*number_clauses):
+    uniform_rand = torch.rand((len(instance.variables),))
+    assignment = (uniform_rand > prob).long()
+
+    for it in range(MAX * number_clauses):
         # Compute all the clauses 
         Z = torch.einsum('ikj,j->ik', weight, assignment) + bias
         C, C_idxs = torch.max(Z, dim=1)
-        violated_clause = (1-C).reshape(1,-1)
-        # Extracted all the random variable in the fitlered clauses
+        violated_clause = (1 - C).reshape(1, -1)
+        # Extracted all the random variable in the filtered clauses
         violated_RV = torch.matmul(violated_clause, clause2var).squeeze()
         if torch.sum(violated_RV) == 0:
             return assignment, it + 1
-        random_assignment = torch.randint(low=0, high=2, size=(len(instance.variables),))
-        
+        uniform_rand = torch.rand((len(instance.variables),))
+        random_assignment = (uniform_rand > prob).int()
+
         assignment = torch.multiply((1 - violated_RV), assignment) + torch.multiply(violated_RV, random_assignment)
     return [], MAX
 
 
-
-def numpy_conditioned_partial_rejection_sampling_sampler(instance):
+def numpy_conditioned_partial_rejection_sampling_sampler(instance, prob=0.5):
     """
     Lovasz SAT Sampler using Numpy implementation with extreme condition for the input SAT-CNF.
     We start with a random assignment for all variables. Then, we find the all the violated clauses,
@@ -160,22 +161,22 @@ def numpy_conditioned_partial_rejection_sampling_sampler(instance):
     """
     number_clauses = len(instance.clauses)
     clause2var, weight, bias = instance.get_formular_matrix_form()
-    
+
     # start with a random assignment for all variables.
-    assignment = np.random.randint(low=0, high=2, size=len(instance.variables))
-    
-    for it in range(MAX*number_clauses):
+    uniform_rand = np.random.rand(len(instance.variables))
+    assignment = (uniform_rand > prob).astype(int)
+
+    for it in range(MAX * number_clauses):
         # Compute all the clauses 
         Z = np.einsum('ikj,j->ik', weight, assignment) + bias
         C = np.max(Z, axis=1)
-        violated_clause = (1-C).reshape(1,-1)
-        # Extracted all the random variable in the fitlered clauses
+        violated_clause = (1 - C).reshape(1, -1)
+        # Extracted all the random variable in the filtered clauses
         violated_RV = np.matmul(violated_clause, clause2var).squeeze()
         if np.sum(violated_RV) == 0:
             return assignment, it + 1
-        random_assignment = np.random.randint(low=0, high=2, size=len(instance.variables))
-        assignment = np.multiply((1-violated_RV), assignment) + np.multiply(violated_RV, random_assignment)
-        
+        uniform_rand = np.random.rand(len(instance.variables))
+        random_assignment = (uniform_rand > prob).astype(int)
+        assignment = np.multiply((1 - violated_RV), assignment) + np.multiply(violated_RV, random_assignment)
+
     return [], MAX
-
-

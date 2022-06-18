@@ -30,13 +30,12 @@ if __name__ == "__main__":
     elif args.algo == 'prs':
         sampler = conditioned_partial_rejection_sampling_sampler
     elif args.algo == 'nls':
-        sampler = pyotrch_conditioned_partial_rejection_sampling_sampler
-        print("using pyotrch_conditioned_partial_rejection_sampling_sampler")
+        sampler = pytorch_conditioned_partial_rejection_sampling_sampler
     
     result = []
     for inst in instances:
         # Run several times for benchmarking purposes.
-        for _ in range(10):
+        for _ in range(2):
             assignment, count = sampler(inst)
             print("the final assignment is:",assignment)
             if len(assignment)>0:
