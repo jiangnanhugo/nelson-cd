@@ -1,3 +1,5 @@
+
+
 #for input_file in datasets/custom/*.cnf
 #do
 #    echo $input_file
@@ -13,3 +15,4 @@ echo "5 300 300"
 python3 train_neural_sat_pref.py --input_file datasets/custom/5_300_300/randkcnf_5_300_300_0166.cnf --algo nls --K 5
 echo "5 500 500"
 python3 train_neural_sat_pref.py --input_file datasets/custom/5_500_500/randkcnf_5_500_500_0166.cnf --algo nls --K 5
+

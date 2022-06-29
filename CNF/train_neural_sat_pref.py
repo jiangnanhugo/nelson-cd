@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 
+
 import torch
 
 from sat_instance import SAT_Instance, generate_random_solutions_with_preference
@@ -7,6 +8,7 @@ from sampler import *
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 import time
+
 
 
 class DeepEnergyNet(torch.nn.Module):
@@ -24,17 +26,21 @@ class DeepEnergyNet(torch.nn.Module):
         return pref_score
 
 
+
 def get_arguments():
     parser = ArgumentParser()
     parser.add_argument('--input_file', help='read from given file', type=str)
     parser.add_argument('--algo', type=str, help="use which sampler", default='lll')
+
     parser.add_argument('--epochs', help='The maximum learning iterations', default=100, type=int)
     parser.add_argument('--learning_rate', help="learning rate of SGD", default=1e-3, type=float)
+
     parser.add_argument('--num_samples', help='number of samples for the neural Lovasz sampler', type=int, default=10)
     parser.add_argument('--file_type', help='cnf', type=str, default='cnf')
     parser.add_argument('--evaluate_freq', help='evaluation frequency', type=int, default=10)
     parser.add_argument('--K', help='cnf', type=int, default=3)
     return parser.parse_args()
+
 
 
 def test(formula, sampler, neural_net, preferred_inputs, less_preferred_inputs,
@@ -94,6 +100,7 @@ def learn_sat_pref(args):
     else:
         instances.append(SAT_Instance.from_file(args.input_file, K=3))
 
+
     sat_train_data = generate_random_solutions_with_preference(instances)
 
     if args.algo == 'lll':
@@ -104,6 +111,7 @@ def learn_sat_pref(args):
         sampler = conditioned_partial_rejection_sampling_sampler
     elif args.algo == 'nls':
         sampler = pytorch_conditioned_partial_rejection_sampling_sampler
+
 
     time_used_for_nelson = []
     time_used_for_nn = []
@@ -145,6 +153,7 @@ def learn_sat_pref(args):
         # time_used_for_nn = np.asarray(time_used_for_nn)
         # print("time for NN: {:.3f} {:.3f}, Nelson: {:.3f} {:.3f} ms".format(np.mean(time_used_for_nn), np.std(time_used_for_nn),
         #                                                                     np.mean(time_used_for_nelson), np.std(time_used_for_nelson)))
+
 
 
 if __name__ == "__main__":

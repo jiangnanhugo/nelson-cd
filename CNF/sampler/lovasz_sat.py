@@ -5,7 +5,6 @@ MAX = 5000
 import torch
 import time
 
-
 def constructive_lovasz_local_lemma_sampler(instance, values=[1, 0]):
     """
     Lovasz Sequential SAT Sampler.
@@ -76,6 +75,7 @@ def conditioned_partial_rejection_sampling_sampler(instance, values=[1, 0]):
 
 
 
+
 def is_satisfied(clause, assignment):
     for number in clause:
         var = number >> 1
@@ -86,6 +86,7 @@ def is_satisfied(clause, assignment):
 
 
 def pytorch_conditioned_partial_rejection_sampling_sampler(instance, device, prob=0.5):
+
     """
     Implementation of Neural Lovasz Sampler using Pytorch, with extreme condition for the input SAT-CNF.
     We start with a random assignment for all variables. Then, we find the all the violated clauses,
@@ -101,6 +102,7 @@ def pytorch_conditioned_partial_rejection_sampling_sampler(instance, device, pro
     assignment = (init_rand > prob).float().to(device)
 
     for it in range(MAX):
+
         # Compute all the clauses 
         Z = torch.einsum('ikj,j->ik', weight, assignment) + bias
         C, C_idxs = torch.max(Z, dim=1)
@@ -147,5 +149,3 @@ def numpy_conditioned_partial_rejection_sampling_sampler(instance, prob=0.5):
         assignment = np.multiply((1 - violated_RV), assignment) + np.multiply(violated_RV, random_assignment)
 
     return [], MAX
-
-

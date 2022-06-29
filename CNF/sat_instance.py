@@ -11,6 +11,7 @@ E.g., variable b is encoded with number 3. The literal b is encoded as: 2*3 = 6 
 """
 import numpy as np
 from pysat.formula import CNF
+
 import random
 
 MAX = 5000
@@ -24,6 +25,9 @@ from pysat.solvers import Solver, SolverNames
 import sys
 
 
+# from pysat.solvers import Glucose3
+from pysat.solvers import Lingeling
+
 # K-SAT problem. K is the number of literal in every clause
 
 
@@ -31,7 +35,6 @@ class SAT_Instance(object):
     def __init__(self, K, cnf_file=None):
         self.variables = []
         self.variable_table = dict()
-        # self.variable_table[0]=0
 
         self.clauses = []
         self.clause2var = None  # matrix for maping cluase 2 variables
@@ -46,6 +49,7 @@ class SAT_Instance(object):
         if literals[-1].strip() == '0':
             literals = literals[:-1]
         for literal in literals:
+
             if literal.startswith("-"):
                 negated = 1
             else:
@@ -53,6 +57,7 @@ class SAT_Instance(object):
             variable = literal[negated:]
             if variable not in self.variable_table:
                 self.variable_table[variable] = len(self.variable_table) + 1
+
 
             if negated:
                 encoded_literal = - self.variable_table[variable]
@@ -71,10 +76,12 @@ class SAT_Instance(object):
                 line = line.strip()
                 if len(line) > 0 and not line.startswith("#"):
                     instance.parse_and_add_clause(line)
+
         instance.variables = list(instance.variable_table.keys())
         print("clauses: {}".format(instance.cnf.clauses))
         print("# of variables:", instance.cnf.nv)
         return instance
+
 
     @classmethod
     def from_cnf_file(cls, input_file, K=-1):
@@ -98,6 +105,7 @@ class SAT_Instance(object):
         # print("clauses: {}, RVs {}".format(len(instance.cnf.clauses), instance.cnf.nv))
         return instance
 
+
     def get_formular_matrix_form(self):
         self.weight = np.zeros(
             (len(self.clauses), self.K, len(self.variables)), dtype=int)
@@ -117,6 +125,7 @@ class SAT_Instance(object):
 
         self.clause2var = np.squeeze(np.sum(np.abs(self.weight), axis=1))
         # print("M={}, W={}, b={}".format(self.clause2var.shape, self.weight.shape, self.bias.shape))
+
         return self.clause2var, self.weight, self.bias
 
 
@@ -151,4 +160,3 @@ def generate_random_solutions_with_preference(instances, number_of_random_valid_
         less_preferred = solutions[(len(solutions) // 2):]
         solutions_and_formulas.append((preferred, less_preferred, inst))
 
-    return solutions_and_formulas

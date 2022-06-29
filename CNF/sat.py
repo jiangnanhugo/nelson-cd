@@ -36,6 +36,7 @@ if __name__ == "__main__":
         sampler = conditioned_partial_rejection_sampling_sampler
     elif args.algo == 'nls':
         sampler = pytorch_conditioned_partial_rejection_sampling_sampler
+
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     result = []
