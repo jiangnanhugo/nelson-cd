@@ -159,4 +159,5 @@ def generate_random_solutions_with_preference(instances, number_of_random_valid_
         preferred = solutions[:(len(solutions) // 2)]
         less_preferred = solutions[(len(solutions) // 2):]
         solutions_and_formulas.append((preferred, less_preferred, inst))
+    return solutions_and_formulas
 
