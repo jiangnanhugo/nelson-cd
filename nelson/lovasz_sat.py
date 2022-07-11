@@ -94,28 +94,28 @@ def pytorch_neural_lovasz_sampler(instance, device, prob=0.5, max_tryouts=10000)
     We repeat the process until we find a valid assignment.
     """
     clause2var, weight, bias = instance.get_formular_matrix_form()
-    clause2var, weight, bias = torch.from_numpy(clause2var).float().to(device), torch.from_numpy(weight).float().to(
-        device), torch.from_numpy(bias).float().to(device)
+    clause2var, weight, bias = torch.from_numpy(clause2var).int().to(device), torch.from_numpy(weight).int().to(
+        device), torch.from_numpy(bias).int().to(device)
 
     st = time.time()
     # start with a random assignment for all variables.
     init_rand = torch.rand((len(instance.variables),)).to(device)
-    all_one = torch.ones(len(instance.clauses)).to(device)
-    assignment = (init_rand > prob).float().to(device)
+    assignment = (init_rand > prob).int().to(device)
 
     for it in range(max_tryouts):
         # Compute all the clauses 
-        Z = torch.einsum('ikj,j->ik', weight, assignment) + bias
+        Z = torch.sum(torch.mul(weight, assignment), dim=-1) + bias
         C, C_idxs = torch.max(Z, dim=1)
-        violated_clause = torch.min(all_one, 1 - C).reshape(1, -1)
+        violated_clause = (1 - C).reshape(1, -1)
         # Extracted all the random variable in the filtered clauses
-        violated_RV = torch.matmul(violated_clause, clause2var).squeeze()
+        violated_RV = torch.sum(torch.mul(violated_clause.reshape(-1),torch.transpose(clause2var, 0,1)),dim=1)
+        violated_RV = (violated_RV > 0).int()
         if torch.sum(violated_RV) == 0:
             return assignment, it + 1, time.time() - st
         resampled_rand = torch.rand((len(instance.variables),)).to(device)
-        random_assignment = (resampled_rand > prob).float().to(device)
+        random_assignment = (resampled_rand > prob).int().to(device)
 
-        assignment = torch.multiply((1 - violated_RV), assignment) + torch.multiply(violated_RV, random_assignment)
+        assignment = torch.mul((1 - violated_RV), assignment) + torch.mul(violated_RV, random_assignment)
     # print("NaN time for sampler:", time.time() - st)
     return [], MAX, time.time() - st
 
@@ -127,10 +127,7 @@ def numpy_conditioned_partial_rejection_sampling_sampler(instance, device='none'
     and resample the variables in all those clause (assigning a new values to each of them IID).
     We repeat the process until we find a valid assignment.
     """
-    number_clauses = len(instance.clauses)
     clause2var, weight, bias = instance.get_formular_matrix_form()
-    all_one = np.zeros(number_clauses)
-
     # start with a random assignment for all variables.
     uniform_rand = np.random.rand(len(instance.variables))
     assignment = (uniform_rand > prob).astype(int)
@@ -139,9 +136,10 @@ def numpy_conditioned_partial_rejection_sampling_sampler(instance, device='none'
         # Compute all the clauses 
         Z = np.einsum('ikj,j->ik', weight, assignment) + bias
         C = np.max(Z, axis=1)
-        violated_clause = np.min(all_one, 1 - C).reshape(1, -1)
+        violated_clause = (1 - C).reshape(1, -1)
         # Extracted all the random variable in the filtered clauses
         violated_RV = np.matmul(violated_clause, clause2var).squeeze()
+        violated_RV = violated_RV > 0
         if np.sum(violated_RV) == 0:
             return assignment, it + 1, time.time() - st
         uniform_rand = np.random.rand(len(instance.variables))
