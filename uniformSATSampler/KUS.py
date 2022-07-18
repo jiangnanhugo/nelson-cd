@@ -30,14 +30,16 @@ import pydot
 
 
 class Node():
-    def __init__(self,label=None,children=[],decision=None):
+    def __init__(self, label=None, children=[], decision=None):
         self.label = label
         self.children = children
         self.models = 1
         self.decisionat = decision
 
+
 class Sampler():
     '''Main class which defines parsing, graph drawing, counting and sampling functions'''
+
     def __init__(self):
         self.totalvariables = None
         self.treenodes = []
@@ -45,21 +47,21 @@ class Sampler():
         self.graph = None
         self.samples = None
         self.drawnnodes = {}
-    
-    def drawtree(self,root):
+
+    def drawtree(self, root):
         '''Recursively draws tree for the d-DNNF'''
-        rootnode = pydot.Node(str(root.label)+" "+str(root.models))
+        rootnode = pydot.Node(str(root.label) + " " + str(root.models))
         self.graph.add_node(rootnode)
         self.drawnnodes[root.label] = rootnode
         for ch in root.children:
             if ch.label not in self.drawnnodes:
                 node = self.drawtree(ch)
-                self.graph.add_edge(pydot.Edge(rootnode,node))
+                self.graph.add_edge(pydot.Edge(rootnode, node))
             else:
-                self.graph.add_edge(pydot.Edge(rootnode,self.drawnnodes[ch.label]))
+                self.graph.add_edge(pydot.Edge(rootnode, self.drawnnodes[ch.label]))
         return rootnode
 
-    def parse(self,inputnnffile):
+    def parse(self, inputnnffile):
         '''Parses the d-DNNF tree to a tree like object'''
         with open(inputnnffile) as f:
             treetext = f.readlines()
@@ -72,34 +74,34 @@ class Sampler():
                 self.totalvariables = int(node[3])
             elif node[0] == 'L':
                 self.treenodes.append(Node(label=int(node[1])))
-                nodelen+=1
+                nodelen += 1
             elif node[0] == 'A':
                 if node[1] == '0':
                     self.treenodes.append(Node(label='T ' + str(nodelen)))
                 else:
-                    andnode = Node(label='A '+ str(nodelen))
-                    andnode.children = list(map(lambda x: self.treenodes[int(x)],node[2:]))
+                    andnode = Node(label='A ' + str(nodelen))
+                    andnode.children = list(map(lambda x: self.treenodes[int(x)], node[2:]))
                     self.treenodes.append(andnode)
-                nodelen+=1
+                nodelen += 1
             elif node[0] == 'O':
                 if node[2] == '0':
-                    self.treenodes.append(Node(label='F '+ str(nodelen)))
+                    self.treenodes.append(Node(label='F ' + str(nodelen)))
                 else:
-                    ornode = Node(label='O '+ str(nodelen),decision = int(node[1]))
-                    ornode.children = list(map(lambda x: self.treenodes[int(x)],node[3:]))
+                    ornode = Node(label='O ' + str(nodelen), decision=int(node[1]))
+                    ornode.children = list(map(lambda x: self.treenodes[int(x)], node[3:]))
                     self.treenodes.append(ornode)
-                nodelen+=1
+                nodelen += 1
 
-    def counting(self,root):
+    def counting(self, root):
         '''Computes Model Counts'''
-        if(str(root.label)[0] == 'A'):
+        if (str(root.label)[0] == 'A'):
             root.models = 1
             finalbitvec = set()
             for ch in root.children:
-                finalbitvec.update(self.counting(ch)) 
-                root.models = root.models * ch.models    
+                finalbitvec.update(self.counting(ch))
+                root.models = root.models * ch.models
             return finalbitvec
-        elif(str(root.label)[0] == 'O'):
+        elif (str(root.label)[0] == 'O'):
             bitvecs = []
             bitvecs.append(self.counting(root.children[0]))
             bitvecs.append(self.counting(root.children[1]))
@@ -128,34 +130,35 @@ class Sampler():
             except:
                 if (str(root.label)[0] == 'F'):
                     root.models = 0
-                elif (str(root.label)[0] == 'T'):                    
+                elif (str(root.label)[0] == 'T'):
                     root.models = 1
-            return bitvec 
+            return bitvec
 
-    def getsamples(self,root,indices):
+    def getsamples(self, root, indices):
         '''Generates Uniform Independent Samples'''
-        if(not indices.shape[0]):
+        if (not indices.shape[0]):
             return
-        if(str(root.label)[0] == 'O'):
+        if (str(root.label)[0] == 'O'):
             z0 = root.children[0].models
             z1 = root.children[1].models
-            p = (1.0*z0)/(z0+z1)
+            p = (1.0 * z0) / (z0 + z1)
             tosses = np.random.binomial(1, p, indices.shape[0])
-            self.getsamples(root.children[0],np.array(indices[np.where(tosses==1)[0]]))
-            self.getsamples(root.children[1],np.array(indices[np.where(tosses==0)[0]]))
-        elif(str(root.label)[0] == 'A'):
+            self.getsamples(root.children[0], np.array(indices[np.where(tosses == 1)[0]]))
+            self.getsamples(root.children[1], np.array(indices[np.where(tosses == 0)[0]]))
+        elif (str(root.label)[0] == 'A'):
             for ch in root.children:
-                self.getsamples(ch,indices)
+                self.getsamples(ch, indices)
         else:
             try:
                 int(root.label)
                 for index in indices:
                     if (self.useList):
-                        self.samples[index][abs(root.label)-1] = root.label
+                        self.samples[index][abs(root.label) - 1] = root.label
                     else:
-                        self.samples[index] += str(root.label)+' '
+                        self.samples[index] += str(root.label) + ' '
             except:
                 pass
+
 
 def random_assignment(totalVars, solution, useList):
     '''Takes total number of variables and a partial assignment
@@ -164,37 +167,40 @@ def random_assignment(totalVars, solution, useList):
     if useList:
         solutionstr = ''
         for literal in solution:
-            if literal: #literal is not 0 ie unassigned
+            if literal:  # literal is not 0 ie unassigned
                 literals.add(abs(int(literal)))
-        for i in range(1,totalVars+1):
+        for i in range(1, totalVars + 1):
             if i not in literals:
-                solutionstr += str(((random.randint(0,1)*2)-1)*i)+" "
+                solutionstr += str(((random.randint(0, 1) * 2) - 1) * i) + " "
             else:
-                solutionstr += str(int(solution[i-1]))+" "
+                solutionstr += str(int(solution[i - 1])) + " "
     else:
         solutionstr = solution
         for x in solution.split():
             literals.add(abs(int(x)))
-        for i in range(1,totalVars+1):
+        for i in range(1, totalVars + 1):
             if i not in literals:
-                solutionstr += str(((random.randint(0,1)*2)-1)*i)+" "
+                solutionstr += str(((random.randint(0, 1) * 2) - 1) * i) + " "
     return solutionstr
 
+
 def main():
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)  
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--outputfile", type=str, default="samples.txt", help="output file for samples", dest='outputfile')
-    parser.add_argument("--drawtree", type=int, default = 0, help="draw nnf tree", dest='draw')
-    parser.add_argument("--samples", type=int, default = 10, help="number of samples", dest='samples')
-    parser.add_argument("--useList", type=int, default = 0, help="use list for storing samples internally instead of strings", dest="useList")
-    parser.add_argument("--randAssign", type=int, default = 1, help="randomly assign unassigned variables in a model with partial assignments", dest="randAssign")
-    parser.add_argument("--savePickle", type=str, default=None, help="specify name to save Pickle of count annotated dDNNF for incremental sampling", dest="savePickle")
+    parser.add_argument("--drawtree", type=int, default=0, help="draw nnf tree", dest='draw')
+    parser.add_argument("--samples", type=int, default=10, help="number of samples", dest='samples')
+    parser.add_argument("--useList", type=int, default=0, help="use list for storing samples internally instead of strings", dest="useList")
+    parser.add_argument("--randAssign", type=int, default=1,
+                        help="randomly assign unassigned variables in a model with partial assignments", dest="randAssign")
+    parser.add_argument("--savePickle", type=str, default=None,
+                        help="specify name to save Pickle of count annotated dDNNF for incremental sampling", dest="savePickle")
     parser.add_argument("--printStats", type=int, default=0, help="print d-DNNF compilation stats", dest="printStats")
     parser.add_argument("--seed", type=int, default=0, help="seed for random number generator", dest="seed")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--dDNNF', type=str, help="specify dDNNF file", dest="dDNNF")
     group.add_argument('--countPickle', type=str, help="specify Pickle of count annotated dDNNF", dest="countPickle")
     group.add_argument('DIMACSCNF', nargs='?', type=str, default="", help='input cnf file')
-    
+
     args = parser.parse_args()
     random.seed(args.seed)
     draw = args.draw
@@ -215,10 +221,10 @@ def main():
         printCompilerOutput = args.printStats
     savePickle = args.savePickle
     useList = False
-    if (useListInt == 1):
+    if useListInt == 1:
         useList = True
     randAssign = False
-    if (randAssignInt == 1):
+    if randAssignInt == 1:
         randAssign = True
     sampler = Sampler()
     sampler.useList = useList
@@ -228,7 +234,7 @@ def main():
             text = f.read()
             f.close()
         dDNNF = DIMACSCNF + ".nnf"
-        cmd = "./d4 " + DIMACSCNF + " -out=" + dDNNF
+        cmd = "./uniformSATSampler/d4 " + DIMACSCNF + " -out=" + dDNNF
         if not printCompilerOutput:
             cmd += " > /dev/null 2>&1"
         else:
@@ -246,57 +252,58 @@ def main():
             exit()
         start = time.time()
         bitvec = sampler.counting(sampler.treenodes[-1])
-        sampler.treenodes[-1].models = sampler.treenodes[-1].models * (2**(sampler.totalvariables - len(bitvec)))
-        print("Time taken for Model Counting:", time.time()-start)
+        sampler.treenodes[-1].models = sampler.treenodes[-1].models * (2 ** (sampler.totalvariables - len(bitvec)))
+        print("Time taken for Model Counting:", time.time() - start)
         timepickle = time.time()
         if savePickle:
             fp = open(savePickle, "wb")
-            pickle.dump((sampler.totalvariables,sampler.treenodes), fp)
+            pickle.dump((sampler.totalvariables, sampler.treenodes), fp)
             fp.close()
             print("Count annotated dDNNF pickle saved to:", savePickle)
             print("Time taken to save the count annotated dDNNF pickle:", time.time() - timepickle)
     else:
         timepickle = time.time()
         fp = open(countPickle, "rb")
-        (sampler.totalvariables,sampler.treenodes) = pickle.load(fp)
+        (sampler.totalvariables, sampler.treenodes) = pickle.load(fp)
         fp.close()
         print("Time taken to read the pickle:", time.time() - timepickle)
         if savePickle:
             fp = open(savePickle, "wb")
-            pickle.dump((sampler.totalvariables,sampler.treenodes), fp)
+            pickle.dump((sampler.totalvariables, sampler.treenodes), fp)
             fp.close()
             print("Time taken to save the count annotated dDNNF pickle:", time.time() - timepickle)
 
-    print("Model Count:",sampler.treenodes[-1].models)
+    print("Model Count:", sampler.treenodes[-1].models)
     if draw:
         sampler.graph = pydot.Dot(graph_type='digraph')
         sampler.drawtree(sampler.treenodes[-1])
         sampler.graph.write_png('d-DNNFgraph.png')
-    if (useList):
-        sampler.samples = np.zeros((totalsamples,sampler.totalvariables), dtype=np.int32)
+    if useList:
+        sampler.samples = np.zeros((totalsamples, sampler.totalvariables), dtype=np.int32)
     else:
         sampler.samples = []
         for i in range(totalsamples):
             sampler.samples.append('')
     start = time.time()
-    sampler.getsamples(sampler.treenodes[-1],np.arange(0,totalsamples))
-    print("Time taken by sampling:", time.time()-start)
-    f = open(args.outputfile,"w+")
+    sampler.getsamples(sampler.treenodes[-1], np.arange(0, totalsamples))
+    print("Time taken by sampling:", time.time() - start)
+    f = open(args.outputfile, "w+")
     if randAssign:
         sampler.samples = list(map(lambda x: random_assignment(sampler.totalvariables, x, sampler.useList), sampler.samples))
         for i in range(totalsamples):
-            f.write(str(i+1) + ", " + sampler.samples[i] + "\n")
+            f.write(str(i + 1) + ", " + sampler.samples[i] + "\n")
         f.close()
     else:
         if useList:
             for i in range(totalsamples):
-                f.write(str(i+1) + ", " + " ".join(map(str,sampler.samples[i])) + "\n")
+                f.write(str(i + 1) + ", " + " ".join(map(str, sampler.samples[i])) + "\n")
             f.close()
-        else:        
+        else:
             for i in range(totalsamples):
-                f.write(str(i+1) + ", " + sampler.samples[i] + "\n")
+                f.write(str(i + 1) + ", " + sampler.samples[i] + "\n")
             f.close()
     print("Samples saved to", args.outputfile)
 
-if __name__== "__main__":
+
+if __name__ == "__main__":
     main()

@@ -5,7 +5,6 @@ or random SAT sampler (trial-and-error) method
 import torch
 from argparse import ArgumentParser
 from collections import Counter
-from tqdm import tqdm
 
 from sat_instance import SAT_Instance
 from lovasz_sat import *
@@ -27,7 +26,9 @@ def get_arguments():
 if __name__ == "__main__":
     args = get_arguments()
     instance = SAT_Instance.from_cnf_file(args.input, args.K)
-    device=None
+    device = None
+    clause2var, weight, bias = None, None, None
+    sampler = None
     if args.algo == 'lll':
         sampler = constructive_lovasz_local_lemma_sampler
     elif args.algo == 'mc':
@@ -36,16 +37,20 @@ if __name__ == "__main__":
         sampler = conditioned_partial_rejection_sampling_sampler
     elif args.algo == 'numpy':
         sampler = numpy_conditioned_partial_rejection_sampling_sampler
+        clause2var, weight, bias = instance.get_formular_matrix_form()
     elif args.algo == 'nelson':
         sampler = pytorch_neural_lovasz_sampler
+        clause2var, weight, bias = instance.get_formular_matrix_form()
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        clause2var, weight, bias = torch.from_numpy(clause2var).int().to(device), torch.from_numpy(weight).int().to(
+            device), torch.from_numpy(bias).int().to(device)
 
     result = []
     time_used = 0
     # Run several times for benchmarking purposes.
-    for _ in tqdm(range(args.samples)):
-        assignment, count, ti = sampler(instance, device=device, prob=0.5)
+    for _ in range(args.samples):
+        assignment, count, ti = sampler(instance, clause2var, weight, bias, device=device, prob=0.5)
         if len(assignment) > 0:
             result.append(count)
         time_used += ti
