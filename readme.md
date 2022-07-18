@@ -1,5 +1,12 @@
 ### Experiments of Neural Lovasz Sampler
 
+
+### Requirements
+to generate the Rand-k-cnf dataset we need
+```python
+pip3 install cnfgen
+```
+
 ### 1. Uniform sampling comparison
 
 sampling SAT-CNF solutions uniformly.
