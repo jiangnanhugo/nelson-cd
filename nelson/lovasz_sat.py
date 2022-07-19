@@ -6,7 +6,7 @@ import torch
 import time
 
 
-def constructive_lovasz_local_lemma_sampler(instance, clause2var, weight, bias, device=None, prob=None, values=[1, 0], max_tryouts=10000):
+def constructive_lovasz_local_lemma_sampler(instance, clause2var, weight, bias, device=None, prob=None, max_tryouts=10000):
     """
     Lovasz Sequential SAT Sampler.
     We start with a random assignment for all variables. Then, we find the first violated clause,
@@ -18,8 +18,9 @@ def constructive_lovasz_local_lemma_sampler(instance, clause2var, weight, bias, 
     """
     number_clauses = len(instance.clauses)
     # start with a random assignment for all variables.
-    assignment = [random.choice(values)
-                  for _ in range(len(instance.variables))]
+
+    assignment = [random.random() > prob[i]
+                  for i in range(len(instance.variables))]
     st = time.time()
     for it in range(max_tryouts * number_clauses):
         # find the first violated clauses.
@@ -33,12 +34,12 @@ def constructive_lovasz_local_lemma_sampler(instance, clause2var, weight, bias, 
         # Resample the variable
         for number in violated_clause:
             var = number >> 1
-            assignment[var] = random.choice(values)
+            assignment[var] = random.random() > prob[var]
 
     return [], MAX * number_clauses, time.time() - st
 
 
-def conditioned_partial_rejection_sampling_sampler(instance,  clause2var, weight, bias, device=None, prob=None, values=[1, 0], max_tryouts=10000):
+def conditioned_partial_rejection_sampling_sampler(instance,  clause2var, weight, bias, device=None, prob=None, max_tryouts=10000):
     """
     Lovasz Parallel SAT Sampler with extreme condition for the input SAT-CNF..
     We start with a random assignment for all variables. Then, we find the all the violated clauses,
@@ -52,8 +53,8 @@ def conditioned_partial_rejection_sampling_sampler(instance,  clause2var, weight
     """
     number_clauses = len(instance.clauses)
     # start with a random assignment for all variables.
-    assignment = [random.choice(values)
-                  for _ in range(len(instance.variables))]
+    assignment = [random.random() > prob[i]
+                  for i in range(len(instance.variables))]
     st = time.time()
     for it in range(max_tryouts * number_clauses):
         # find all the violated clauses.
@@ -73,7 +74,7 @@ def conditioned_partial_rejection_sampling_sampler(instance,  clause2var, weight
                 all_vars.add(var)
 
         for var in list(all_vars):
-            assignment[var] = random.choice(values)
+            assignment[var] = random.random() > prob[var]
     return [], MAX * number_clauses, time.time() - st
 
 

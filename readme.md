@@ -1,31 +1,48 @@
-### Experiments of Neural Lovasz Sampler
+# Experiments of Neural Lovasz Sampler
 
 
-### Requirements
-to generate the Rand-k-cnf dataset we need
-```python
-pip3 install cnfgen
+## Requirements
+The script relies on zsh, you need to install it first.
+```bash
+sudo apt install zsh
+chsh -s $(which zsh)
+sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 ```
 
-### 1. Uniform sampling comparison
+install pytroch
+```bash
+pip install torch
+```
+
+to generate the Rand-k-cnf dataset we need
+```python
+pip install cnfgen
+pip install 'python-sat[pblib,aiger]'
+```
+
+## 1. Uniform sampling comparison
 
 sampling SAT-CNF solutions uniformly.
 
 ```bash
-PATH_TO_ONE_CNF_FILE=dataset/random-k-sat/5-30-30/*.cnf
-cd uniform_sample_evaluate
-python run_evaluation.py --algo nelson --input_cnf PATH_TO_ONE_CNF_FILE
+./run_uniform_random_ksat.sh prs 5 300 300 uniform
+./run_uniform_random_ksat.sh prs 5 300 300 weighted
 ```
 
-notice that `--algo` means choose the sampler. Here we can choose among the following list of algorithms:
 
 ```bash
-[nelson, spur, unigen3, quciksampler, cmsgen, bddsampler, kus, smarch, searchtreesampler]
+[nelson, spur, unigen, quciksampler, cmsgen, bddsampler, kus, smarch, searchtreesampler]
 ```
 
-All the baseline methods included for comparison are cloned from its public-available repositories. 
+note that, for `unigen, cmsgen` you need to goto its repository and install the program according to the `readme.md` file.
+
+To run the `kus` program, you need to install `pydot`.
+
+All the baseline methods included for comparison are cloned from its public-available repositories. If you want to run the rest programs, you need to goto every link and install it.
+
+
 - [Spur](https://github.com/ZaydH/spur)
-- [Unigen3](https://github.com/meelgroup/unigen)
+- [Unigen](https://github.com/meelgroup/unigen)
 - [QuickSampler](https://github.com/RafaelTupynamba/quicksampler)
 - [CMSGen](https://github.com/meelgroup/cmsgen)
 - [KUS](https://github.com/meelgroup/KUS). 

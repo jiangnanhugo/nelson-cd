@@ -9,12 +9,18 @@ from collections import Counter
 from sat_instance import SAT_Instance
 from lovasz_sat import *
 from random_sat import Monte_Carlo_sampler
+import random
+
+random.seed(10010)
+torch.manual_seed(10010)
+np.random.seed(10010)
 
 
 def get_arguments():
     parser = ArgumentParser()
 
     parser.add_argument('--algo', type=str, help="use which sampler", default='lll')
+    parser.add_argument('--weighted', type=str, help="use weighted sampling?", default='yes')
     parser.add_argument('--input', help='read from given cnf file', type=str)
     parser.add_argument('--K', type=int, default=3,
                         help="K-SAT")
@@ -28,7 +34,13 @@ if __name__ == "__main__":
     instance = SAT_Instance.from_cnf_file(args.input, args.K)
     device = None
     clause2var, weight, bias = None, None, None
-    sampler = None
+    sampler, prob = None, None
+    if args.weighted == 'uniform':
+        prob = np.ones(instance.cnf.nv) * 0.5
+    elif args.weighted == 'weighted':
+        prob = np.random.random(instance.cnf.nv)
+    print(prob)
+
     if args.algo == 'lll':
         sampler = constructive_lovasz_local_lemma_sampler
     elif args.algo == 'mc':
@@ -45,12 +57,13 @@ if __name__ == "__main__":
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         clause2var, weight, bias = torch.from_numpy(clause2var).int().to(device), torch.from_numpy(weight).int().to(
             device), torch.from_numpy(bias).int().to(device)
+        prob = torch.from_numpy(prob).to(device)
 
     result = []
     time_used = 0
     # Run several times for benchmarking purposes.
     for _ in range(args.samples):
-        assignment, count, ti = sampler(instance, clause2var, weight, bias, device=device, prob=0.5)
+        assignment, count, ti = sampler(instance, clause2var, weight, bias, device=device, prob=prob)
         if len(assignment) > 0:
             result.append(count)
         time_used += ti
