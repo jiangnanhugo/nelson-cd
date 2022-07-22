@@ -6,7 +6,6 @@ algo=$1
 K=$2
 RV=$3
 C=$4
-weighted=$5
 NUM=100
 mkdir -p results/uniform_sample/rand-k-sat/${K}_${RV}_${C}/
 for i in {0001..1000}
@@ -16,22 +15,22 @@ do
 	output_file=results/uniform_sample/rand-k-sat/${K}_${RV}_${C}/randkcnf_${K}_${RV}_${C}_$i
 	if [[ "$algo" == "nelson" ]]; then
 		echo "nelson $i"
-		timeout 60 python3 nelson/sat_uniform_gen.py --samples $NUM --input $input_file --algo nelson --K 5 --weighted $weighted > $output_file.$weighted.nelson.log
+		timeout 60 python3 nelson/nelson_gen.py --samples $NUM --input $input_file --algo nelson --K 5 --weighted uniform > $output_file.uniform.nelson.log
 	fi
 
 	if [[ "$algo" == "lll" ]]; then
 		echo "$algo $i"
-		timeout 60 python3 nelson/sat_uniform_gen.py --samples $NUM --input $input_file --algo lll --K 5 --weighted $weighted > $output_file.$weighted.$algo.log
+		timeout 60 python3 nelson/nelson_gen.py --samples $NUM --input $input_file --algo lll --K 5 --weighted uniform > $output_file.uniform.$algo.log
 	fi
 
 	if [[ "$algo" == "prs" ]]; then
 		echo "$algo $i"
-		timeout 60 python3 nelson/sat_uniform_gen.py --samples $NUM --input $input_file --algo prs --K 5  --weighted $weighted> $output_file.$weighted.$algo.log
+		timeout 60 python3 nelson/nelson_gen.py --samples $NUM --input $input_file --algo prs --K 5  --weighted uniform> $output_file.uniform.$algo.log
 	fi
 
 	if [[ "$algo" == "numpy" ]]; then
 		echo "$algo $i"
-		timeout 60 python3 nelson/sat_uniform_gen.py --samples $NUM --input $input_file --algo numpy --K 5 --weighted $weighted > $output_file.$weighted.$algo.log
+		timeout 60 python3 nelson/nelson_gen.py --samples $NUM --input $input_file --algo numpy --K 5 --weighted uniform > $output_file.uniform.$algo.log
 	fi
 
 	if [[ "$algo" == "unigen" ]]; then
