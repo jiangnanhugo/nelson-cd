@@ -6,10 +6,12 @@ import torch
 from argparse import ArgumentParser
 from collections import Counter
 
-from sat_instance import SAT_Instance
+
+from PRS.utils.sat_instance.sat_instance import SAT_Instance
 from lovasz_sat import *
 from random_sat import Monte_Carlo_sampler
 import random
+from statsmodels.stats.gof import chisquare
 
 random.seed(10010)
 torch.manual_seed(10010)
@@ -61,11 +63,14 @@ if __name__ == "__main__":
 
     result = []
     time_used = 0
+    all_assignments=[]
     # Run several times for benchmarking purposes.
     for _ in range(args.samples):
         assignment, count, ti = sampler(instance, clause2var, weight, bias, device=device, prob=prob)
         if len(assignment) > 0:
             result.append(count)
+            assignment.append(assignment)
         time_used += ti
     print(Counter(result))
+    print(Counter(assignment))
     print("len={}, time={:.4f}s".format(len(result), time_used))

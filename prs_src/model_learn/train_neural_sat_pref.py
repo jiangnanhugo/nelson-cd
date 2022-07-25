@@ -1,17 +1,16 @@
 from argparse import ArgumentParser
-
-
+import time
 import torch
 
-from sat_instance import SAT_Instance, generate_random_solutions_with_preference
-from sampler import *
+from utils.sat_instance.sat_instance import SAT_Instance, generate_random_solutions_with_preference
+from sampler.nelson.lovasz_sat import *
+from sampler.nelson.random_sat import Monte_Carlo_sampler
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-import time
+random.seed(10010)
+np.random.seed(10010)
 
-
-
-class DeepEnergyNet(torch.nn.Module):
+class EnergyScore(torch.nn.Module):
     def __init__(self, input_dim):
         super().__init__()
         # self.beta = 1
@@ -24,7 +23,6 @@ class DeepEnergyNet(torch.nn.Module):
     def forward(self, x):
         pref_score = torch.sum(torch.mul(self.theta, x) + torch.mul(1 - self.theta, 1 - x), dim=1)
         return pref_score
-
 
 
 def get_arguments():
@@ -42,9 +40,7 @@ def get_arguments():
     return parser.parse_args()
 
 
-
-def test(formula, sampler, neural_net, preferred_inputs, less_preferred_inputs,
-         list_of_Ks=[5, 10, 20]):
+def test(formula, clause2var, weight, bias, sampler, neural_net, preferred_inputs, less_preferred_inputs, list_of_Ks=[5, 10, 20]):
     # compute log-likelihood
     # see Handbook of Satisfiability Chapter 20
     # URL: https://www.cs.cornell.edu/~sabhar/chapters/ModelCounting-SAT-Handbook-prelim.pdf Page 11
@@ -52,8 +48,7 @@ def test(formula, sampler, neural_net, preferred_inputs, less_preferred_inputs,
 
     prob = neural_net.get_prob()
     while len(samples) <= args.num_samples:
-        assignment, _, time_used = sampler(formula, device, prob)
-
+        assignment, count, time_used = sampler(formula, clause2var, weight, bias, device=device, prob=prob)
         if len(assignment) > 0:
             samples.append(assignment.reshape(1, -1))
 
@@ -62,13 +57,13 @@ def test(formula, sampler, neural_net, preferred_inputs, less_preferred_inputs,
     pseudo_loss = phi[0] - torch.sum(phi[1:]) / (len(phi) - 1)
     uni_samples = []
     while len(uni_samples) <= args.num_samples:
+        assignment, count, time_used = sampler(formula, clause2var, weight, bias, device=device, prob=0.5)
 
-        assignment, _, time_used = sampler(formula, device, 0.5)
         if len(assignment) > 0:
             uni_samples.append(assignment.reshape(1, -1))
     averaged_ratio = args.num_samples / torch.sum(torch.concat(uni_samples, dim=0).to(device), dim=0)
     log_model_count = torch.sum(torch.log(averaged_ratio))
-    print("log-likelihood: {:.4f}".format(- pseudo_loss - log_model_count))
+    print("log-likelihood: {:.6f}".format(- pseudo_loss - log_model_count))
 
     # compute mean averaged precision (MAP@K)
     test_samples = []
@@ -88,18 +83,14 @@ def test(formula, sampler, neural_net, preferred_inputs, less_preferred_inputs,
             if i < len(preferred_inputs):
                 cnt += 1
                 map += cnt / (idx + 1)
-        print("{:.4f}".format(map / cnt), end=" ")
+        print("{:.6f}".format(map / cnt), end=" ")
     print()
 
 
 def learn_sat_pref(args):
     # Construct our model by instantiating the class defined above
     instances = []
-    if args.file_type == 'cnf':
-        instances.append(SAT_Instance.from_cnf_file(args.input_file, args.K))
-    else:
-        instances.append(SAT_Instance.from_file(args.input_file, K=3))
-
+    instances.append(SAT_Instance.from_cnf_file(args.input_file, args.K))
 
     sat_train_data = generate_random_solutions_with_preference(instances)
 
@@ -110,13 +101,17 @@ def learn_sat_pref(args):
     elif args.algo == 'prs':
         sampler = conditioned_partial_rejection_sampling_sampler
     elif args.algo == 'nls':
-        sampler = pytorch_conditioned_partial_rejection_sampling_sampler
-
+        sampler = pytorch_neural_lovasz_sampler
 
     time_used_for_nelson = []
     time_used_for_nn = []
     for preferred_xis, less_preferred_xis, Fi in sat_train_data:
-        model = DeepEnergyNet(input_dim=Fi.cnf.nv).to(device)
+        model = EnergyScore(input_dim=Fi.cnf.nv).to(device)
+        clause2var, weight, bias = Fi.get_formular_matrix_form()
+        clause2var, weight, bias = torch.from_numpy(clause2var).int().to(device), \
+                                   torch.from_numpy(weight).int().to(device), \
+                                   torch.from_numpy(bias).int().to(device)
+
         for epo_idx in range(1, args.epochs):
             random.shuffle(preferred_xis)
             for xi in preferred_xis:
@@ -124,7 +119,7 @@ def learn_sat_pref(args):
 
                 prob = model.get_prob()
                 while len(samples) <= args.num_samples:
-                    assignment, _, time_used = sampler(Fi, device, prob)
+                    assignment, count, time_used = sampler(Fi, clause2var, weight, bias, device=device, prob=prob)
 
                     if len(assignment) > 0:
                         samples.append(assignment.reshape(1, -1))
@@ -133,7 +128,7 @@ def learn_sat_pref(args):
                 new_inputs = torch.concat(samples, dim=0).to(device)
                 phi = model(new_inputs)
                 pseudo_loss = phi[0] - torch.sum(phi[1:]) / (len(phi) - 1)
-                print("energy: {:.4f} {:.4f} diff: {:.4f}".format(phi[0], torch.sum(phi[1:]) / (len(phi) - 1), pseudo_loss))
+                print("energy: {:.6f} {:.6f} diff: {:.6f}".format(phi[0], torch.sum(phi[1:]) / (len(phi) - 1), pseudo_loss))
 
                 model.zero_grad()
                 pseudo_loss.backward()
@@ -147,13 +142,12 @@ def learn_sat_pref(args):
                 time_used_for_nn.append((time.time() - st) * 1000)
 
             if epo_idx % args.evaluate_freq == 0:
-                test(Fi, sampler, model, preferred_xis, less_preferred_xis)
-
+                test(Fi, clause2var, weight, bias, sampler, model, preferred_xis, less_preferred_xis)
+        test(Fi, clause2var, weight, bias, sampler, model, preferred_xis, less_preferred_xis)
         # time_used_for_nelson = np.asarray(time_used_for_nelson)
         # time_used_for_nn = np.asarray(time_used_for_nn)
         # print("time for NN: {:.3f} {:.3f}, Nelson: {:.3f} {:.3f} ms".format(np.mean(time_used_for_nn), np.std(time_used_for_nn),
         #                                                                     np.mean(time_used_for_nelson), np.std(time_used_for_nelson)))
-
 
 
 if __name__ == "__main__":

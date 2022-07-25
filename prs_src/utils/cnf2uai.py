@@ -6,8 +6,8 @@ MAX = 5000
 
 # K-SAT problem. K is the number of literal in every clause
 
-def cnf_to_uai(cnf_formula: CNF, prob: np.array, filename):
-    with open(filename, 'w') as fw:
+def cnf_to_uai(cnf_formula: CNF, prob: np.array, output_file):
+    with open(output_file, 'w') as fw:
         fw.write("MARKOV\n")
         fw.write("{}\n".format(cnf_formula.nv))
         fw.write(" ".join(['2' for _ in range(cnf_formula.nv)]) + '\n')

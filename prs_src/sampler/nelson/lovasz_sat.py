@@ -97,7 +97,7 @@ def pytorch_neural_lovasz_sampler(instance, clause2var, weight, bias, device, pr
 
     st = time.time()
     # start with a random assignment for all variables.
-    init_rand = torch.rand((len(instance.variables),)).to(device)
+    init_rand = torch.rand((instance.cnf.nv,)).to(device)
     assignment = (init_rand > prob).int().to(device)
 
     for it in range(max_tryouts):
@@ -110,7 +110,7 @@ def pytorch_neural_lovasz_sampler(instance, clause2var, weight, bias, device, pr
         violated_RV = (violated_RV > 0).int()
         if torch.sum(violated_RV) == 0:
             return assignment, it + 1, time.time() - st
-        resampled_rand = torch.rand((len(instance.variables),)).to(device)
+        resampled_rand = torch.rand((instance.cnf.nv,)).to(device)
         random_assignment = (resampled_rand > prob).int().to(device)
 
         assignment = torch.mul((1 - violated_RV), assignment) + torch.mul(violated_RV, random_assignment)
@@ -125,10 +125,13 @@ def numpy_conditioned_partial_rejection_sampling_sampler(instance, clause2var, w
     and resample the variables in all those clause (assigning a new values to each of them IID).
     We repeat the process until we find a valid assignment.
     """
-    clause2var, weight, bias = instance.get_formular_matrix_form()
+    # clause2var, weight, bias = instance.get_formular_matrix_form()
     # start with a random assignment for all variables.
-    uniform_rand = np.random.rand(len(instance.variables))
+    uniform_rand = np.random.rand(instance.cnf.nv)
+    if uniform_rand.shape[0] != prob.shape[0]:
+        print(uniform_rand.shape, prob.shape)
     assignment = (uniform_rand > prob).astype(int)
+
     st = time.time()
     for it in range(max_tryouts):
         # Compute all the clauses 
@@ -140,7 +143,9 @@ def numpy_conditioned_partial_rejection_sampling_sampler(instance, clause2var, w
         violated_RV = violated_RV > 0
         if np.sum(violated_RV) == 0:
             return assignment, it + 1, time.time() - st
-        uniform_rand = np.random.rand(len(instance.variables))
+        uniform_rand = np.random.rand(instance.cnf.nv)
+        if uniform_rand.shape[0] != prob.shape[0]:
+            print(uniform_rand.shape, prob.shape)
         random_assignment = (uniform_rand > prob).astype(int)
         assignment = np.multiply((1 - violated_RV), assignment) + np.multiply(violated_RV, random_assignment)
 

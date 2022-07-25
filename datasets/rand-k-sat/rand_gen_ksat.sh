@@ -1,10 +1,15 @@
 #!/usr/bin/zsh
 K=5
-RV=700
-C=700
-mkdir ${K}_${RV}_${C}
-for i in {0001..1000}
+
+for size in {1..10}
 do
-	echo "idx $i"
-	cnfgen randkcnf $K $RV $C > ${K}_${RV}_${C}/randkcnf_${K}_${RV}_${C}_$i.cnf
+	RV=${size}000
+	C=${size}000
+	mkdir ${K}_${RV}_${C}
+	# install from: https://github.com/MassimoLauria/cnfgen
+	for i in {0001..0100}
+	do
+		echo "idx $i"
+		cnfgen randkcnf $K $RV $C > ${K}_${RV}_${C}/randkcnf_${K}_${RV}_${C}_$i.cnf
+	done
 done

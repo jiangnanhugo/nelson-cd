@@ -67,11 +67,12 @@ class SAT_Instance(object):
                     instance.parse_and_add_clause(line)
         instance.variables = list(instance.variable_table.keys())
         # print("clauses: {}, RVs {}".format(len(instance.cnf.clauses), instance.cnf.nv))
+
         return instance
 
     def get_formular_matrix_form(self):
         self.weight = np.zeros(
-            (len(self.clauses), self.K, len(self.variables)), dtype=int)
+            (len(self.cnf.clauses), self.K, self.cnf.nv), dtype=int)
         self.bias = np.zeros((len(self.clauses), self.K), dtype=int)
 
         for i in range(len(self.clauses)):

@@ -50,3 +50,8 @@ All the baseline methods included for comparison are cloned from its public-avai
 - [STS](https://cs.stanford.edu/~ermon/code/STS.zip)
 
 ### 2. Weighted sampling comparison
+
+ **Requirement**:
+ ```python
+pip install waps
+```
