@@ -1,10 +1,10 @@
 #!/usr/bin/zsh
 K=5
 
-for size in {1..10}
+for size in {11..19}
 do
-	RV=${size}000
-	C=${size}000
+	RV=${size}
+	C=${size}
 	mkdir ${K}_${RV}_${C}
 	# install from: https://github.com/MassimoLauria/cnfgen
 	for i in {0001..0100}
