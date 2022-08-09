@@ -1,7 +1,6 @@
 #!/usr/bin/zsh
-# this script evalutes the uniform sampling from randomly generated KSAT instances
+# this script evaluates the uniform sampling from randomly generated KSAT instances
 
-# run the nelson algorithm
 algo=$1
 K=5
 NUM=$2
@@ -11,7 +10,7 @@ timeout=7200
 RV=$size
 C=$size
 mkdir -p results/uniform_sample/rand-k-sat/${K}_${RV}_${C}/
-for i in {0001..0020}
+for i in 0066 #{0001..0020}
 do
     input_file=datasets/rand-k-sat/${K}_${RV}_${C}/randkcnf_${K}_${RV}_${C}_$i.cnf
     output_file=results/uniform_sample/rand-k-sat/${K}_${RV}_${C}/randkcnf_${K}_${RV}_${C}_$i
@@ -25,7 +24,7 @@ do
         timeout $timeout python3 ./scripts/nelson_uniform_gen.py --samples $NUM --input $input_file --algo $algo --K 5 --weighted uniform --batch_size $batch_size --output $output_file.$algo.log
     fi
 
-    if [[ "$algo" == "unigen" || "$algo" == "kus"  || "$algo" == "cmsgen" || "$algo" == "quicksampler" ]]; then
+    if [[ "$algo" == "unigen" || "$algo" == "kus"  || "$algo" == "cmsgen" || "$algo" == "quicksampler" || "$algo" == "gibbs_sampling" ]]; then
         echo "$algo $i"
         python3 ./scripts/run_uniform_random_ksat.py  --input $input_file --samples $NUM --algo $algo --output $output_file
     fi

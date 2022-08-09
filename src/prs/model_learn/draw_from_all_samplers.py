@@ -1,28 +1,51 @@
+import sys
 import time
 import torch
 import math
 import os
 import numpy as np
+from collections import Counter
 from waps import sampler as waps_sampler
+
+from pysat.formula import CNF
+from pysat.solvers import Solver
 
 from prs.sampler.nelson.lovasz_sat import pytorch_neural_lovasz_sampler, constructive_lovasz_local_lemma_sampler, \
     partial_rejection_sampling_sampler, pytorch_batch_neural_lovasz_sampler, numpy_neural_lovasz_sampler
 from prs.sampler.nelson.random_sat import Monte_Carlo_sampler
 from prs.sampler.xor_sampling.xor_sampler import XOR_Sampling
+from prs.sampler.gibbs_sampler.gibbs_mrf import Gibbs_Sampling
 from prs.utils.cnf2uai import cnf_to_uai
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def xor_sample(cnf_instance, prob, input_file, num_samples):
+
+def draw_from_xor_sampling(num_samples, input_file, cnf_instance, prob):
     cnf_to_uai(cnf_instance, prob, input_file + ".weight.uai")
     returned_samples = XOR_Sampling(input_file + ".weight.uai", num_samples)
+
+    sampled_assignments = []
+    for sampled_assig in returned_samples:
+        sampled_assignments.append(torch.from_numpy(np.array(sampled_assig)).to(device).reshape(1, -1))
+    return sampled_assignments
+
+
+def draw_from_gibbs_sampling(num_samples, input_file, cnf_instance, prob):
+    cnf_to_uai(cnf_instance, prob, input_file + ".weight.uai")
+    returned_samples = Gibbs_Sampling(input_file + ".weight.uai", num_samples)
+
+    sampled_assignments = []
+    for sampled_assig in returned_samples:
+        sampled_assignments.append(torch.from_numpy(np.array(sampled_assig)).to(device).reshape(1, -1))
+    return sampled_assignments
 
 
 def draw_from_weightgen(num_samples, input_file, instance, prob, device='cuda'):
     instance.cnf.to_file(input_file + ".weight")
     with open(input_file + ".weight", "a") as fw:
         for xi in range(instance.cnf.nv):
-            fw.write("w {} {} 0\n".format(xi + 1, prob[xi]))
-            fw.write("w -{} {} 0\n".format(xi + 1, 1.0 - prob[xi]))
+            fw.write("w {} {} 0\n".format(xi + 1, 1.0 - prob[xi]))
+            fw.write("w -{} {} 0\n".format(xi + 1, prob[xi]))
     kappa = 0.4
     timeout = 72000
     satTimeout = 3000
@@ -53,7 +76,7 @@ def draw_from_weightgen(num_samples, input_file, instance, prob, device='cuda'):
     return sampled_assignments
 
 
-def draw_from_prs_series(algo, Fi, clause2var, weight, bias, prob, num_samples, device='cuda'):
+def draw_from_prs_series(algo, Fi, clause2var, weight, bias, prob, num_samples, **kwargs):
     if algo == 'lll':
         sampler = constructive_lovasz_local_lemma_sampler
     elif algo == 'mc':
@@ -76,25 +99,33 @@ def draw_from_prs_series(algo, Fi, clause2var, weight, bias, prob, num_samples, 
                 samples.append(assignment.reshape(1, -1))
 
     elif algo == 'nelson_batch':
-        # prob = torch.ones(Fi.cnf.nv).to(device) * 0.5
+        batch_size = kwargs['sampler_batch_size']
         clause2var = torch.transpose(clause2var, 0, 1)
         clause2var = clause2var.reshape(1, *clause2var.size())
         weight = weight.reshape(1, *weight.size())
         bias = bias.reshape(1, *bias.size())
-        assignments, count, _ = pytorch_batch_neural_lovasz_sampler(Fi, clause2var, weight, bias, device=device, prob=prob,
-                                                                    batch_size=num_samples)
-        if len(assignments) > 0:
-            samples = assignments
+        samples = []
+        for _ in range(num_samples // batch_size):
 
+            batched_assignment, _, _ = pytorch_batch_neural_lovasz_sampler(Fi, clause2var, weight, bias,
+                                                                           device=device, prob=prob, batch_size=batch_size)
+            if len(batched_assignment) > 0:
+                samples += batched_assignment
+        if num_samples % batch_size != 0:
+            batched_assignment, count, ti = pytorch_batch_neural_lovasz_sampler(Fi, clause2var, weight, bias, device=device,
+                                                                                prob=prob,
+                                                                                batch_size=num_samples % batch_size)
+            if len(batched_assignment) > 0:
+                samples += batched_assignment
     return samples
 
 
-def draw_from_waps(num_samples, input_file, instance, prob, device='cuda'):
+def draw_from_waps(num_samples, input_file, instance, prob):
     instance.cnf.to_file(input_file + ".weight")
     with open(input_file + ".weight", "a") as fw:
         for xi in range(instance.cnf.nv):
-            fw.write("w {} {} 0\n".format(xi + 1, prob[xi]))
-            fw.write("w -{} {} 0\n".format(xi + 1, 1.0 - prob[xi]))
+            fw.write("w {} {} 0\n".format(xi + 1, 1 - prob[xi]))
+            fw.write("w -{} {} 0\n".format(xi + 1, prob[xi]))
     sampler = waps_sampler(cnfFile=input_file + ".weight")
     sampler.compile()
     sampler.parse()
@@ -110,26 +141,45 @@ def draw_from_waps(num_samples, input_file, instance, prob, device='cuda'):
     return sampled_assignments
 
 
-def draw_from_quicksampler(num_samples, input_file, device='cuda'):
-    cmd = """./src/prs/sampler/uniformSATSampler/quicksampler -n {} -t 180.0 {} >/tmp/tmp.log""".format(num_samples, input_file)
-
-    os.system(cmd)
+def draw_from_quicksampler(num_samples, input_file):
     sampled_assignments = []
-    with open(input_file + '.samples', 'r') as fr:
-        idx = 0
-        for li in fr.read().split("\n"):
-            one_sol = li.strip().split(" ")[-1].strip()
-            if len(one_sol) <= 1:
-                continue
-            if idx >= num_samples:
-                break
-            sampled_assig = [int(x) for x in one_sol]
-            sampled_assignments.append(torch.from_numpy(np.array(sampled_assig)).to(device).reshape(1, -1))
-            idx += 1
+    formula = CNF(input_file)
+    solver = Solver(bootstrap_with=formula.clauses)
+    iter = 0
+    while len(sampled_assignments) < num_samples:
+        iter += 1
+        cmd = """./src/prs/sampler/uniformSATSampler/quicksampler -n {} -t 180.0 {} >/tmp/tmp.log""".format(num_samples, input_file)
+
+        os.system(cmd)
+        print(iter, len(sampled_assignments), end="\r")
+        sys.stdout.flush()
+        lines = []
+        with open(input_file + '.samples', 'r') as fr:
+            for li in fr.read().split("\n"):
+                one_sol = li.strip().split(" ")[-1].strip()
+                if len(one_sol) <= 1:
+                    continue
+                lines.append(one_sol)
+        os.remove(input_file + '.samples')
+        cnt = 0
+        for k in lines:
+            assignment = []
+            for idx, x in enumerate(k):
+                if x == '0':
+                    assignment.append(-idx - 1)
+                else:
+                    assignment.append(idx + 1)
+            if solver.solve(assignment):
+                sampled_assignments.append([1 if int(x) > 0 else 0 for x in k])
+            else:
+                cnt += 1
+
+    sampled_assignments = [torch.from_numpy(np.array(sampled_assignments[idx])).to(device).reshape(1, -1) for idx in range(num_samples)]
+
     return sampled_assignments
 
 
-def draw_from_kus(num_samples, input_file, device='cuda'):
+def draw_from_kus(num_samples, input_file):
     tmpfile = "/tmp/randksat.kus.txt"
     cmd = "python3  ./src/prs/sampler/uniformSATSampler/KUS.py --samples {} --outputfile {} {} >/tmp/tmp.log".format(num_samples,
                                                                                                                      tmpfile,
@@ -151,7 +201,7 @@ def draw_from_kus(num_samples, input_file, device='cuda'):
     return sampled_assignments
 
 
-def draw_from_cmsgen(num_samples, input_file, device='cuda'):
+def draw_from_cmsgen(num_samples, input_file):
     tmpfile = "/tmp/randksat.cmsgen.txt"
     cmd = "./src/prs/sampler/uniformSATSampler/cmsgen --samples {} --samplefile {} {} >/tmp/tmp.log".format(num_samples,
                                                                                                             tmpfile,
@@ -161,15 +211,16 @@ def draw_from_cmsgen(num_samples, input_file, device='cuda'):
     with open(tmpfile, 'r') as fr:
         for li in fr.read().split("\n"):
             one_sol = li.strip().split(" ")[:-1]
-            # print(one_sol)
             if len(li) <= 1:
                 continue
-            sampled_assig = [1 if int(x) > 0 else -1 for x in one_sol]
+            # print(li)
+            sampled_assig = [1 if int(x) > 0 else 0 for x in one_sol]
             sampled_assignments.append(torch.from_numpy(np.array(sampled_assig)).to(device).reshape(1, -1))
+    print(len(sampled_assignments), sampled_assignments[0].shape)
     return sampled_assignments
 
 
-def draw_from_unigen(num_samples, input_file, device='cuda'):
+def draw_from_unigen(num_samples, input_file):
     tmpfile = '/tmp/unigen.txt'
     cmd = """./src/prs/sampler/uniformSATSampler/unigen --input {} --samples {} --sampleout {} > /tmp/tmp.txt""".format(input_file,
                                                                                                                         num_samples,
@@ -183,7 +234,7 @@ def draw_from_unigen(num_samples, input_file, device='cuda'):
             # print(one_sol)
             if len(li) <= 1:
                 continue
-            sampled_assig = [1 if int(x) > 0 else -1 for x in one_sol]
+            sampled_assig = [1 if int(x) > 0 else 0 for x in one_sol]
             # print(sampled_assig)
             sampled_assignments.append(torch.from_numpy(np.array(sampled_assig)).to(device).reshape(1, -1))
     return sampled_assignments

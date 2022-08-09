@@ -104,6 +104,7 @@ if __name__ == "__main__":
         result = chisquare(dists)
 
     elif args.algo == 'quicksampler':
+        print(args.input)
         cmd = """./src/prs/sampler/uniformSATSampler/quicksampler -n {} -t 180.0 {} >/tmp/tmp.log""".format(args.samples, args.input)
         st = time.time()
 
@@ -120,6 +121,37 @@ if __name__ == "__main__":
                     break
                 lines.append(instance)
                 idx += 1
+        os.remove(args.input + '.samples')
+
+        freq_dict = Counter(lines)
+        cnt = 0
+        for k in freq_dict:
+            assignment = []
+            # print(len(k))
+            for idx, x in enumerate(k):
+                if x == '0':
+                    assignment.append(-idx - 1)
+                else:
+                    assignment.append(idx + 1)
+            if solver.solve(assignment):
+                cnt_valid += freq_dict[k]
+                dists.append(freq_dict[k])
+            else:
+                cnt += 1
+        print(cnt, len(lines))
+    elif args.algo == 'gibbs_sampling':
+        from prs.sampler.gibbs_sampler.gibbs_mrf import Gibbs_Sampling
+        from prs.utils.cnf2uai import cnf_to_uai
+
+        st = time.time()
+        prob = np.ones(formula.nv)
+        cnf_to_uai(formula, prob, args.input + ".uniform.gibbs.uai")
+        returned_samples = Gibbs_Sampling(args.input + ".uniform.gibbs.uai", args.samples)
+
+        sampled_time = time.time() - st
+        lines = []
+        for xx in returned_samples:
+            lines.append("".join([str(xxx) for xxx in xx]))
 
         freq_dict = Counter(lines)
 
@@ -138,9 +170,10 @@ if __name__ == "__main__":
         from prs.sampler.xor_sampling.xor_sampler import XOR_Sampling
         from prs.utils.cnf2uai import cnf_to_uai
 
-        cnf_to_uai(cnf_instance, prob, args.input + ".weight.uai")
+        prob = np.ones(formula.nv)
+        cnf_to_uai(formula, prob, args.input + ".uniform.xor.uai")
         st = time.time()
-        returned_samples = XOR_Sampling(args.input + ".weight.uai", args.samples)
+        returned_samples = XOR_Sampling(args.input + ".uniform.xor.uai", args.samples)
 
         sampled_time = time.time() - st
         with open(args.output + ".xor_sampling.log", 'a') as fw:

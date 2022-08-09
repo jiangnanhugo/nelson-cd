@@ -1,11 +1,10 @@
-import numpy
 import numpy as np
+import random
+
 from pysat.formula import CNF
+from pysat.solvers import Solver
 
 MAX = 5000
-
-import random
-from pysat.solvers import Solver
 
 
 # K-SAT problem. K is the number of literal in every clause
@@ -66,8 +65,9 @@ class SAT_Instance(object):
                 if not line.startswith("c") and not line.startswith("p") and len(line) > 1:
                     instance.parse_and_add_clause(line)
         instance.variables = list(instance.variable_table.keys())
-        # print("clauses: {}, RVs {}".format(len(instance.cnf.clauses), instance.cnf.nv))
-
+        for x in instance.variable_table:
+            if not x == instance.variable_table[x]:
+                print(x, instance.variable_table[x])
         return instance
 
     def get_formular_matrix_form(self):
@@ -92,6 +92,7 @@ class SAT_Instance(object):
 
         return self.clause2var, self.weight, self.bias
 
+
 def get_all_solutions(instance):
     all_solutions = []
     with Solver(name='glucose4', bootstrap_with=instance.cnf.clauses, use_timer=True) as s:
@@ -100,6 +101,7 @@ def get_all_solutions(instance):
             np_one_solution = np_one_solution.astype(int)
             all_solutions.append(np_one_solution)
     return all_solutions
+
 
 def generate_random_solutions_with_preference(instance, number_of_random_valid_solutions=200):
     def enumerate_models(formula, to_enum, solver):
@@ -112,11 +114,9 @@ def generate_random_solutions_with_preference(instance, number_of_random_valid_s
                 if i == to_enum:
                     random.shuffle(all_solutions)
                     return all_solutions
+            return all_solutions
 
     solutions = enumerate_models(instance.cnf, number_of_random_valid_solutions, 'glucose4')
     preferred = solutions[:(len(solutions) // 2)]
     less_preferred = solutions[(len(solutions) // 2):]
     return preferred, less_preferred
-
-
-

@@ -39,7 +39,7 @@ def cnf_to_uai(cnf_formula: CNF, prob: np.array, output_file):
                 fw.write("{:.4f}\n".format(output))
 
 
-if __name__ == '__main__':
-    cnf = CNF("/home/jiangnan/PycharmProjects/partial-rejection-sampling/datasets/rand-k-sat/3_5_3/randkcnf_3_5_3_0001.cnf")
-    prob = np.random.rand(cnf.nv)
-    cnf_to_uai(cnf, prob, "output.uai")
+# if __name__ == '__main__':
+#     cnf = CNF("/home/jiangnan/PycharmProjects/partial-rejection-sampling/datasets/rand-k-sat/3_5_3/randkcnf_3_5_3_0001.cnf")
+#     prob = np.random.rand(cnf.nv)
+#     cnf_to_uai(cnf, prob, "output.uai")

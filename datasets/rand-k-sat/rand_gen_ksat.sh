@@ -1,7 +1,7 @@
 #!/usr/bin/zsh
 K=5
 
-for size in {11..19}
+for size in 5000
 do
 	RV=${size}
 	C=${size}

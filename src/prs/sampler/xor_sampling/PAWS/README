@@ -1,0 +1,97 @@
+  
+  PAWS - PArity-basedWeightedSampler
+  
+  Version 1.0 (November 2013)
+
+=====================================================================
+  Copyright, 2013:
+
+  Stefano Ermon     - Cornell University  , ermonste@cs.cornell.edu
+  Ashish Sabharwal  - IBM Watson          , ashish.sabharwal@us.ibm.com
+
+  The lastest version of this program is available at
+  http://www.cs.cornell.edu/~ermonste
+
+  Please send bug reports and suggestions/improvements to:
+  ermonste@cs.cornell.edu and ashish.sabharwal@us.ibm.com
+=====================================================================
+
+1. PAWS
+2. System Requirements
+3. Usage Examples
+
+---------------------------------------------------------------------
+
+1. PAWS
+
+PAWS is an algorithm to sample from high-dimensional discrete probability
+distribution. This implementation is designed for discrete graphical models,
+specified in the UAI format. This is accomplished by:
+(1) A discretization step
+(2) An embedding step
+(3) Projections using pairwise independent hash functions
+(4) Combinatorial search in the projected manifold
+
+For more details on the algorithm see:
+
+  Embed and Project: Discrete Sampling with Universal Hashing
+  Stefano Ermon, Carla P. Gomes, Ashish Sabharwal, and Bart Selman
+  NIPS-2013
+
+Please reference this paper if you use this code.
+
+---------------------------------------------------------------------
+
+2. System Requirements
+
+PAWS uses a combinatorial optimization solver to solve a sequence of
+optimization instances and feasibility queries. 
+This implementation relies on IBM ILOG CPLEX Optimization Studio 
+(specifically, the CP Optimizer component) and the solver Toulbar2. 
+ 
+
+2a. IBM ILOG CPLEX Optimization Studio must be installed on the system
+(the current version of PAWS has been tested with Academic Research Edition version 12.3). 
+A free academic license of CPLEX may be obtained from:
+
+  http://www.ibm.com/ibm/university/academic/pub/page/academic_initiative
+
+Detailed installation instructions for CPLEX are provided on the
+website.
+If you experience difficulties running the code despite having the
+academic version installed (or with a different version of CPLEX), 
+please contact us.
+
+
+2b. For the Toulbar2 system part, we provide headers and a static library 
+for 64-bit Linux machines. Original source code can be obtained here:
+https://mulcyber.toulouse.inra.fr/projects/toulbar2/
+
+
+2c. Compile using the provided Makefile, after setting ILOGBASE appropriately
+
+
+---------------------------------------------------------------------
+
+3. Usage Examples
+
+Run "paws -h" for usage information.
+
+To produce 100 samples and use them to compute marginal probabilities for the graphical
+model specified by gridmod_mixed_n8_w3.5_f0.5.uai simply run:
+
+   ./paws gridmod_mixed_n8_w3.5_f0.5.uai -paritylevel 1 -samples 100 -nbauxv 15 -b 1 -alpha 1 -pivot 4
+
+Exact marginal probabilities computed using Junction Tree can be found in gridmod_mixed_n8_w3.5_f0.5.uai.marginals
+
+UAI format is specified e.g. here
+http://www.cs.huji.ac.il/project/PASCAL/fileFormat.php
+Currently, only binary variables are supported.
+
+Setting the hyper-parameters:
+
+Increasing the hyper-parameters {nbauxv, b , alpha , pivot} improves the accuracy of the sampling.
+However, it also increases the runtime. Please refer to the NIPS-13 paper 
+for guidelines on how to set the hyper-parameters of the algorithm.
+
+---------------------------------------------------------------------
