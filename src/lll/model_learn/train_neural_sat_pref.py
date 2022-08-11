@@ -4,9 +4,9 @@ import torch
 import random
 import numpy as np
 import sys
-from prs.model_learn.evaluation import evaluation, compute_nabla_log_ZC, compute_nabla_log_ZC_XOR
-from prs.utils.sat_instance import SAT_Instance, generate_random_solutions_with_preference
-from prs.model_learn.draw_from_all_samplers import draw_from_waps, draw_from_weightgen, draw_from_cmsgen, draw_from_unigen, \
+from lll.model_learn.evaluation import evaluation, compute_nabla_log_ZC, compute_nabla_log_ZC_XOR
+from lll.utils.sat_instance import SAT_Instance, generate_random_solutions_with_preference
+from lll.model_learn.draw_from_all_samplers import draw_from_waps, draw_from_weightgen, draw_from_cmsgen, draw_from_unigen, \
     draw_from_prs_series, draw_from_kus, draw_from_quicksampler, draw_from_xor_sampling, draw_from_gibbs_sampling
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -106,7 +106,7 @@ def learn_sat_pref(args):
             elif args.algo == 'xor_sampling':
                 samples += draw_from_xor_sampling(num_samples=args.num_samples, cnf_instance=sat_instance.cnf, input_file=args.input_file,
                                                   prob=prob)
-            elif args.algo in ['lll', 'mc', 'prs', 'nelson', 'nelson_batch']:
+            elif args.algo in ['lll', 'mc', 'lll', 'nelson', 'nelson_batch']:
                 samples += draw_from_prs_series(args.algo, sat_instance, clause2var, weight, bias, prob, batch_size=args.sampler_batch_size,
                                                 num_samples=args.num_samples)
                 samples = [x.reshape(1, -1) for x in samples]

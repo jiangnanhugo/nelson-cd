@@ -6,8 +6,8 @@ from argparse import ArgumentParser
 from collections import Counter
 
 from pysat.solvers import Solver
-from prs.utils.sat_instance import SAT_Instance
-from prs.sampler.nelson.lovasz_sat import *
+from lll.utils.sat_instance import SAT_Instance
+from lll.sampler.nelson.lovasz_sat import *
 import random
 from statsmodels.stats.gof import chisquare
 
@@ -164,7 +164,7 @@ if __name__ == "__main__":
 
     if args.algo == 'lll':
         all_assignments, time_used, result = lll(samples=args.samples, prob=prob)
-    elif args.algo == 'prs':
+    elif args.algo == 'lll':
         all_assignments, time_used, result = prs(samples=args.samples, prob=prob)
     elif args.algo == 'numpy':
         all_assignments, time_used, result = numpy_nelson(samples=args.samples, prob=prob)

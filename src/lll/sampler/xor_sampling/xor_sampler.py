@@ -12,7 +12,7 @@ def XOR_Sampling(filename, n_samples, log_folder=''):
     res_log = os.path.join(log_folder, "/tmp/tmp_paws_res_log.txt")
 
     while len(term) < n_samples:
-        os.system('./src/prs/sampler/xor_sampling/PAWS/paws -paritylevel 1 -timelimit 180 -samples {} -nbauxv {} -alpha 1 -pivot 8 -b 1  -outpath {}  {}> {}'
+        os.system('./src/lll/sampler/xor_sampling/PAWS/paws -paritylevel 1 -timelimit 180 -samples {} -nbauxv {} -alpha 1 -pivot 8 -b 1  -outpath {}  {}> {}'
                   .format(n_samples, nbauxv, res_log, filename,  running_log))
 
         with open(res_log, 'r') as f:

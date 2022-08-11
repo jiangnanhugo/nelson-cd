@@ -25,8 +25,8 @@ pip install 'python-sat[pblib,aiger]'
 sampling SAT-CNF solutions uniformly.
 
 ```bash
-./run_weighted_random_ksat.py prs 5 300 300 uniform
-./run_weighted_random_ksat.py prs 5 300 300 weighted
+./run_weighted_random_ksat.py lll 5 300 300 uniform
+./run_weighted_random_ksat.py lll 5 300 300 weighted
 ```
 
 

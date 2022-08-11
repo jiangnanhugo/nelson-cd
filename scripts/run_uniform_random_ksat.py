@@ -34,7 +34,7 @@ if __name__ == "__main__":
     sampled_time = 0
     if args.algo == 'kus':
         tmpfile = "/tmp/randksat.kus.txt"
-        cmd = "python3  ./src/prs/sampler/uniformSATSampler/KUS.py --samples {} --outputfile {} {} >/tmp/tmp.log".format(args.samples,
+        cmd = "python3  ./src/lll/sampler/uniformSATSampler/KUS.py --samples {} --outputfile {} {} >/tmp/tmp.log".format(args.samples,
                                                                                                                          tmpfile,
                                                                                                                          args.input)
         st = time.time()
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         result = chisquare(dists)
     elif args.algo == 'cmsgen':
         tmpfile = "/tmp/randksat.cmsgen.txt"
-        cmd = "./src/prs/sampler/uniformSATSampler/cmsgen --samples {} --samplefile {} {} >/tmp/tmp.log".format(args.samples,
+        cmd = "./src/lll/sampler/uniformSATSampler/cmsgen --samples {} --samplefile {} {} >/tmp/tmp.log".format(args.samples,
                                                                                                                 tmpfile,
                                                                                                                 args.input)
         st = time.time()
@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     elif args.algo == 'unigen':
         tmpfile = '/tmp/unigen.txt'
-        cmd = """./src/prs/sampler/uniformSATSampler/unigen --input {} --samples {} --sampleout {} > /tmp/tmp.txt""".format(args.input,
+        cmd = """./src/lll/sampler/uniformSATSampler/unigen --input {} --samples {} --sampleout {} > /tmp/tmp.txt""".format(args.input,
                                                                                                                             args.samples,
                                                                                                                             tmpfile)
         st = time.time()
@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     elif args.algo == 'quicksampler':
         print(args.input)
-        cmd = """./src/prs/sampler/uniformSATSampler/quicksampler -n {} -t 180.0 {} >/tmp/tmp.log""".format(args.samples, args.input)
+        cmd = """./src/lll/sampler/uniformSATSampler/quicksampler -n {} -t 180.0 {} >/tmp/tmp.log""".format(args.samples, args.input)
         st = time.time()
 
         os.system(cmd)

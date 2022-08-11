@@ -1,9 +1,9 @@
 import torch
 import random
 import numpy as np
-from prs.sampler.nelson.lovasz_sat import pytorch_neural_lovasz_sampler
-from prs.utils.sat_instance import get_all_solutions
-from prs.model_learn.draw_from_all_samplers import draw_from_waps, draw_from_weightgen, draw_from_cmsgen, draw_from_unigen, \
+from lll.sampler.nelson.lovasz_sat import pytorch_neural_lovasz_sampler
+from lll.utils.sat_instance import get_all_solutions
+from lll.model_learn.draw_from_all_samplers import draw_from_waps, draw_from_weightgen, draw_from_cmsgen, draw_from_unigen, \
     draw_from_prs_series, draw_from_kus, draw_from_quicksampler, draw_from_xor_sampling, draw_from_gibbs_sampling
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -126,7 +126,7 @@ def evaluation(formula, clause2var, weight, bias, algo, neural_net, preferred_in
     #     samples += draw_from_waps(num_samples, input_file, formula, prob)
     # elif args.algo == 'weightgen':
     #     samples += draw_from_weightgen(args.num_samples, args.input_file, formula, prob)
-    # elif algo in ['lll', 'mc', 'prs', 'nelson', 'nelson_batch']:
+    # elif algo in ['lll', 'mc', 'lll', 'nelson', 'nelson_batch']:
     #     samples += draw_from_prs_series(args.algo, formula, clause2var, weight, bias, prob, num_samples)
     #     samples = [x.reshape(1, -1) for x in samples]
 

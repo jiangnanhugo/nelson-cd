@@ -1,9 +1,11 @@
-import time
+
+import numpy as np
+from lll.utils.load_uai import UaiFile
 import copy
-from utils.load_uai import *
+import warnings
+warnings.filterwarnings("ignore")
 
-
-def Gibbs_Sampling(filename, n_samples, initial=None, T=50):
+def Gibbs_Sampling(filename, n_samples, initial=None, burnin_time=50):
     # Takes too much time
     uai = UaiFile(filename)
     if initial == None:
@@ -11,10 +13,8 @@ def Gibbs_Sampling(filename, n_samples, initial=None, T=50):
     else:
         term = copy.deepcopy(initial)
 
-    begin_time = time.perf_counter()
-
     # Vectorize
-    for j in range(T):
+    for j in range(burnin_time):
         for x_idx in range(uai.n_var):
             # sample each element x
             p = np.ones([n_samples, 2], dtype=float)
@@ -40,7 +40,5 @@ def Gibbs_Sampling(filename, n_samples, initial=None, T=50):
             term[(rand_.squeeze() < p[:, 0].squeeze()), x_idx] = 0
             term[(rand_.squeeze() >= p[:, 0].squeeze()), x_idx] = 1
 
-    print("Gibbs sampling finished")
-    end_time = time.perf_counter()
-    print(f"Got {n_samples} samples in {end_time - begin_time:0.4f} seconds")
+
     return term

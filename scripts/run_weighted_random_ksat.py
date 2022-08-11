@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from prs.utils.sat_instance import SAT_Instance
+from lll.utils.sat_instance import SAT_Instance
 import random
 from argparse import ArgumentParser
 import time
@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
         pivotUniGen = math.ceil(4.03 * (1 + 1 / kappa) * (1 + 1 / kappa))
         st = time.time()
-        cmd = """./src/prs/sampler/weightedSATSampler/weightgen --samples={} --kappa={} --pivotUniGen={} --maxTotalTime={} \
+        cmd = """./src/lll/sampler/weightedSATSampler/weightgen --samples={} --kappa={} --pivotUniGen={} --maxTotalTime={} \
             --startIteration=0 --maxLoopTime={} --tApproxMC=17 --pivotAC=46 --gaussuntil=400 \
             --verbosity=0 --ratio={} {} {}""".format(args.samples, kappa, pivotUniGen, timeout,
                                                      satTimeout, tilt, args.input + ".weight", args.output+".weightgen.log")
@@ -101,7 +101,7 @@ if __name__ == "__main__":
             sampler = constructive_lovasz_local_lemma_sampler
         elif args.algo == 'mc':
             sampler = Monte_Carlo_sampler
-        elif args.algo == 'prs':
+        elif args.algo == 'lll':
             sampler = conditioned_partial_rejection_sampling_sampler
         elif args.algo == 'numpy':
             sampler = numpy_conditioned_partial_rejection_sampling_sampler

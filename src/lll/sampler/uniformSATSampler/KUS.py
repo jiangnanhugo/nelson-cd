@@ -234,7 +234,7 @@ def main():
             text = f.read()
             f.close()
         dDNNF = DIMACSCNF + ".nnf"
-        cmd = "./src/prs/sampler/uniformSATSampler/d4 " + DIMACSCNF + " -out=" + dDNNF
+        cmd = "./src/lll/sampler/uniformSATSampler/d4 " + DIMACSCNF + " -out=" + dDNNF
         if not printCompilerOutput:
             cmd += " > /dev/null 2>&1"
         else:

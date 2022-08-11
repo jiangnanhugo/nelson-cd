@@ -10,12 +10,12 @@ from waps import sampler as waps_sampler
 from pysat.formula import CNF
 from pysat.solvers import Solver
 
-from prs.sampler.nelson.lovasz_sat import pytorch_neural_lovasz_sampler, constructive_lovasz_local_lemma_sampler, \
+from lll.sampler.nelson.lovasz_sat import pytorch_neural_lovasz_sampler, constructive_lovasz_local_lemma_sampler, \
     partial_rejection_sampling_sampler, pytorch_batch_neural_lovasz_sampler, numpy_neural_lovasz_sampler
-from prs.sampler.nelson.random_sat import Monte_Carlo_sampler
-from prs.sampler.xor_sampling.xor_sampler import XOR_Sampling
-from prs.sampler.gibbs_sampler.gibbs_mrf import Gibbs_Sampling
-from prs.utils.cnf2uai import cnf_to_uai
+from lll.sampler.nelson.random_sat import Monte_Carlo_sampler
+from lll.sampler.xor_sampling.xor_sampler import XOR_Sampling
+from lll.sampler.gibbs_sampler.gibbs_mrf import Gibbs_Sampling
+from lll.utils.cnf2uai import cnf_to_uai
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -59,7 +59,7 @@ def draw_from_weightgen(num_samples, input_file, instance, prob, device='cuda'):
     pivotUniGen = math.ceil(4.03 * (1 + 1 / kappa) * (1 + 1 / kappa))
     st = time.time()
     tmp_file = "/tmp/randksat.weightgen.log"
-    cmd = """./src/prs/sampler/weightedSATSampler/weightgen --samples={} --kappa={} --pivotUniGen={} --maxTotalTime={} \
+    cmd = """./src/lll/sampler/weightedSATSampler/weightgen --samples={} --kappa={} --pivotUniGen={} --maxTotalTime={} \
                 --startIteration=0 --maxLoopTime={} --tApproxMC=17 --pivotAC=46 --gaussuntil=400 \
                 --verbosity=0 --ratio={} {} {}""".format(num_samples, kappa, pivotUniGen, timeout,
                                                          satTimeout, tilt, input_file + ".weight", tmp_file)
@@ -81,7 +81,7 @@ def draw_from_prs_series(algo, Fi, clause2var, weight, bias, prob, num_samples, 
         sampler = constructive_lovasz_local_lemma_sampler
     elif algo == 'mc':
         sampler = Monte_Carlo_sampler
-    elif algo == 'prs':
+    elif algo == 'lll':
         sampler = partial_rejection_sampling_sampler
     elif algo == 'numpy':
         clause2var, weight, bias = Fi.get_formular_matrix_form()
@@ -148,7 +148,7 @@ def draw_from_quicksampler(num_samples, input_file):
     iter = 0
     while len(sampled_assignments) < num_samples:
         iter += 1
-        cmd = """./src/prs/sampler/uniformSATSampler/quicksampler -n {} -t 180.0 {} >/tmp/tmp.log""".format(num_samples, input_file)
+        cmd = """./src/lll/sampler/uniformSATSampler/quicksampler -n {} -t 180.0 {} >/tmp/tmp.log""".format(num_samples, input_file)
 
         os.system(cmd)
         print(iter, len(sampled_assignments), end="\r")
@@ -181,7 +181,7 @@ def draw_from_quicksampler(num_samples, input_file):
 
 def draw_from_kus(num_samples, input_file):
     tmpfile = "/tmp/randksat.kus.txt"
-    cmd = "python3  ./src/prs/sampler/uniformSATSampler/KUS.py --samples {} --outputfile {} {} >/tmp/tmp.log".format(num_samples,
+    cmd = "python3  ./src/lll/sampler/uniformSATSampler/KUS.py --samples {} --outputfile {} {} >/tmp/tmp.log".format(num_samples,
                                                                                                                      tmpfile,
                                                                                                                      input_file)
 
@@ -203,7 +203,7 @@ def draw_from_kus(num_samples, input_file):
 
 def draw_from_cmsgen(num_samples, input_file):
     tmpfile = "/tmp/randksat.cmsgen.txt"
-    cmd = "./src/prs/sampler/uniformSATSampler/cmsgen --samples {} --samplefile {} {} >/tmp/tmp.log".format(num_samples,
+    cmd = "./src/lll/sampler/uniformSATSampler/cmsgen --samples {} --samplefile {} {} >/tmp/tmp.log".format(num_samples,
                                                                                                             tmpfile,
                                                                                                             input_file)
     os.system(cmd)
@@ -222,7 +222,7 @@ def draw_from_cmsgen(num_samples, input_file):
 
 def draw_from_unigen(num_samples, input_file):
     tmpfile = '/tmp/unigen.txt'
-    cmd = """./src/prs/sampler/uniformSATSampler/unigen --input {} --samples {} --sampleout {} > /tmp/tmp.txt""".format(input_file,
+    cmd = """./src/lll/sampler/uniformSATSampler/unigen --input {} --samples {} --sampleout {} > /tmp/tmp.txt""".format(input_file,
                                                                                                                         num_samples,
                                                                                                                         tmpfile)
 
