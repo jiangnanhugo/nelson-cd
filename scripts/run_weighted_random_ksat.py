@@ -1,19 +1,19 @@
 import numpy as np
 import math
-from lll.utils.sat_instance import SAT_Instance
+from lll.utils.sat_instance import get_formula_matrix_form
 import random
 from argparse import ArgumentParser
 import time
 import os
 random.seed(10010)
 np.random.seed(10010)
-
+from pysat.formula import CNF
 
 def get_arguments():
     parser = ArgumentParser()
 
     parser.add_argument('--algo', type=str, help="use which sampler", default='lll')
-    parser.add_argument('--input', help='read from given cnf file', type=str)
+    parser.add_argument('--input_file', help='read from given cnf file', type=str)
     parser.add_argument('--output', help='read from given cnf file', type=str)
     parser.add_argument('--samples', type=int, default=100,
                         help='number of samples to generate')
@@ -24,13 +24,13 @@ def get_arguments():
 
 if __name__ == "__main__":
     args = get_arguments()
-    instance = SAT_Instance.from_cnf_file(args.input, args.K)
+    cnf_instance = CNF(args.input_file, K=args.K)
 
-    instance.cnf.to_file(args.input + ".weight")
-    prob = np.random.random(instance.cnf.nv)
+    cnf_instance.to_file(args.input + ".weight")
+    prob = np.random.random(cnf_instance.nv)
 
     with open(args.input + ".weight", "a") as fw:
-        for xi in range(instance.cnf.nv):
+        for xi in range(cnf_instance.nv):
             fw.write("w {} {} 0\n".format(xi+1, prob[xi]))
             fw.write("w -{} {} 0\n".format(xi+1, 1.0 - prob[xi]))
 
@@ -74,8 +74,8 @@ if __name__ == "__main__":
             fw.write("sample time: {:.6f}".format(sampled_time))
         print("sample time: {:.6f}".format(sampled_time))
     elif args.algo == 'xor_sampling':
-        from prs.sampler.xor_sampling.xor_sampler import XOR_Sampling
-        from prs.utils.cnf2uai import cnf_to_uai
+        from lll.sampler.xor_sampling.xor_sampler import XOR_Sampling
+        from lll.utils.cnf2uai import cnf_to_uai
         cnf_to_uai(cnf_instance, prob, args.input + ".weight.uai")
         st = time.time()
         returned_samples = XOR_Sampling(args.input + ".weight.uai", args.samples)
@@ -88,31 +88,32 @@ if __name__ == "__main__":
     else:
         from collections import Counter
 
-
-        from sampler.nelson.lovasz_sat import *
-        from sampler.nelson.random_sat import Monte_Carlo_sampler
+        from lll.sampler.nelson.lovasz_sat import pytorch_neural_lovasz_sampler, constructive_lovasz_local_lemma_sampler, \
+             pytorch_batch_neural_lovasz_sampler, numpy_neural_lovasz_sampler
+        from lll.sampler.nelson.random_sat import Monte_Carlo_sampler
         import random
+        import torch
 
         device = None
-        clause2var, weight, bias = None, None, None
+        V, W, b = None, None, None
         sampler = None
 
         if args.algo == 'lll':
             sampler = constructive_lovasz_local_lemma_sampler
         elif args.algo == 'mc':
             sampler = Monte_Carlo_sampler
-        elif args.algo == 'lll':
-            sampler = conditioned_partial_rejection_sampling_sampler
+        # elif args.algo == 'lll':
+        #     sampler = partial_rejection_sampling_sampler
         elif args.algo == 'numpy':
-            sampler = numpy_conditioned_partial_rejection_sampling_sampler
-            clause2var, weight, bias = instance.get_formular_matrix_form()
+            sampler = numpy_neural_lovasz_sampler
+            V, W, b = get_formula_matrix_form(cnf_instance, args.K)
         elif args.algo == 'nelson':
             sampler = pytorch_neural_lovasz_sampler
-            clause2var, weight, bias = instance.get_formular_matrix_form()
+            V, W, b = get_formula_matrix_form(cnf_instance, args.K)
 
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            clause2var, weight, bias = torch.from_numpy(clause2var).int().to(device), torch.from_numpy(weight).int().to(
-                device), torch.from_numpy(bias).int().to(device)
+            V, W, b = torch.from_numpy(V).int().to(device), torch.from_numpy(W).int().to(
+                device), torch.from_numpy(b).int().to(device)
             prob = torch.from_numpy(prob).to(device)
 
         result = []
@@ -120,7 +121,7 @@ if __name__ == "__main__":
         time_used = 0
         # Run several times for benchmarking purposes.
         for _ in range(args.samples):
-            assignment, count, ti = sampler(instance, clause2var, weight, bias, device=device, prob=prob)
+            assignment, count, ti = sampler(cnf_instance, V, W, b, device=device, prob=prob)
             if len(assignment) > 0:
                 result.append(count)
                 assignments.append(assignment)

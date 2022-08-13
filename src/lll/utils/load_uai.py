@@ -2,7 +2,7 @@ import numpy as np
 import re
 
 
-class UaiFile:
+class UaiFile(object):
     def __init__(self, filename):
         self.filename = filename
 

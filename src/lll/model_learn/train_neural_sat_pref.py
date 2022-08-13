@@ -4,8 +4,9 @@ import torch
 import random
 import numpy as np
 import sys
+from pysat.formula import CNF
 from lll.model_learn.evaluation import evaluation, compute_nabla_log_ZC, compute_nabla_log_ZC_XOR
-from lll.utils.sat_instance import SAT_Instance, generate_random_solutions_with_preference
+from lll.utils.sat_instance import  get_formula_matrix_form, generate_random_solutions_with_preference
 from lll.model_learn.draw_from_all_samplers import draw_from_waps, draw_from_weightgen, draw_from_cmsgen, draw_from_unigen, \
     draw_from_prs_series, draw_from_kus, draw_from_quicksampler, draw_from_xor_sampling, draw_from_gibbs_sampling
 
@@ -51,25 +52,25 @@ def get_arguments():
 
 
 def get_dataset(input_file, K=5):
-    sat_instance = SAT_Instance.from_cnf_file(input_file, K)
-    clause2var, weight, bias = sat_instance.get_formular_matrix_form()
+    cnf_instance = CNF(input_file, K=K)
+    clause2var, weight, bias = get_formula_matrix_form(cnf_instance, K)
     clause2var, weight, bias = torch.from_numpy(clause2var).int().to(device), \
                                torch.from_numpy(weight).int().to(device), \
                                torch.from_numpy(bias).int().to(device)
 
-    preferred_xis, less_preferred_xis = generate_random_solutions_with_preference(sat_instance)
-    return clause2var, weight, bias, preferred_xis, less_preferred_xis, sat_instance
+    preferred_xis, less_preferred_xis = generate_random_solutions_with_preference(cnf_instance)
+    return clause2var, weight, bias, preferred_xis, less_preferred_xis, cnf_instance
 
 
 def benchmark_nabla_logZ(args):
-    clause2var, weight, bias, preferred_xis, less_preferred_xis, Fi = get_dataset(args.input_file, args.K)
+    clause2var, weight, bias, preferred_xis, less_preferred_xis, cnf_instance = get_dataset(args.input_file, args.K)
 
-    model = EnergyScore(input_dim=Fi.cnf.nv).to(device)
+    model = EnergyScore(input_dim=cnf_instance.nv).to(device)
     prob = model.get_prob()
     if args.algo == 'xor_sampling':
-        compute_nabla_log_ZC_XOR(Fi, model, args.num_samples, args.input_file, prob=prob)
+        compute_nabla_log_ZC_XOR(cnf_instance, model, args.num_samples, args.input_file, prob=prob)
     else:
-        compute_nabla_log_ZC(Fi, model, args.num_samples, args.input_file, prob=prob, sampler_batch_size=args.sampler_batch_size)
+        compute_nabla_log_ZC(cnf_instance, model, args.num_samples, args.input_file, prob=prob, sampler_batch_size=args.sampler_batch_size)
 
 
 def learn_sat_pref(args):

@@ -26,10 +26,10 @@ def compute_distance(samples, model, nabla_logZ):
         print("${:.6f}$ &".format(torch.linalg.norm(apx_nabla_logZ - nabla_logZ, ord=1)), end='\t')
 
 
-def compute_nabla_log_ZC(instance, model, num_samples, input_file, **kwargs):
+def compute_nabla_log_ZC(cnf_instance, model, num_samples, input_file, **kwargs):
     prob = kwargs['prob']
 
-    all_solutions = get_all_solutions(instance)
+    all_solutions = get_all_solutions(cnf_instance)
     ZC = 0
     nabla_logZ = 0
     for x in all_solutions:
@@ -43,27 +43,25 @@ def compute_nabla_log_ZC(instance, model, num_samples, input_file, **kwargs):
             nabla_logZ += exp_phi * grad_phi_x
             ZC += exp_phi
     nabla_logZ /= ZC
-    sample_waps = draw_from_waps(num_samples, input_file, instance, prob)
-    sample_gibbs = draw_from_gibbs_sampling(num_samples=num_samples, cnf_instance=instance.cnf, input_file=input_file, prob=prob)
+    sample_waps = draw_from_waps(num_samples, input_file, cnf_instance, prob)
+    sample_gibbs = draw_from_gibbs_sampling(num_samples=num_samples, cnf_instance=cnf_instance, input_file=input_file, prob=prob)
     sample_quick = draw_from_quicksampler(num_samples, input_file)
     sample_cmsgen = draw_from_cmsgen(num_samples, input_file)
     sample_unigen = draw_from_unigen(num_samples, input_file)
     sample_kus = draw_from_kus(num_samples, input_file)
-    clause2var, weight, bias = instance.get_formular_matrix_form()
+    clause2var, weight, bias = cnf_instance.get_formular_matrix_form()
     clause2var, weight, bias = torch.from_numpy(clause2var).int().to(device), \
                                torch.from_numpy(weight).int().to(device), \
                                torch.from_numpy(bias).int().to(device)
-    # samples += draw_from_prs_series(args.algo, Fi, clause2var, weight, bias, prob, batch_size=args.sampler_batch_size,
-    #                                 num_samples=args.num_samples)
-    samples = draw_from_prs_series('nelson_batch', instance, clause2var, weight, bias, prob, num_samples=num_samples,
+    samples = draw_from_prs_series('nelson_batch', cnf_instance, clause2var, weight, bias, prob, num_samples=num_samples,
                                    sampler_batch_size=kwargs['sampler_batch_size'])
     sample_nelson = [x.reshape(1, -1) for x in samples]
     print('weightgen')
-    # sample_weightgen = draw_from_weightgen(num_samples, input_file, instance, prob)
+    sample_weightgen = draw_from_weightgen(num_samples, input_file, cnf_instance, prob)
     print('done')
     for ratio in range(10, 11):
         size = num_samples * ratio // 10
-        # compute_distance(sample_weightgen[:size], model, nabla_logZ)
+        compute_distance(sample_weightgen[:size], model, nabla_logZ)
         compute_distance(sample_nelson[:size], model, nabla_logZ)
         print("& ", end=" ")
         compute_distance(sample_waps[:size], model, nabla_logZ)
@@ -78,9 +76,9 @@ def compute_nabla_log_ZC(instance, model, num_samples, input_file, **kwargs):
     #
 
 
-def compute_nabla_log_ZC_XOR(instance, model, num_samples, input_file, **kwargs):
+def compute_nabla_log_ZC_XOR(cnf_instance, model, num_samples, input_file, **kwargs):
     prob = kwargs['prob']
-    all_solutions = get_all_solutions(instance)
+    all_solutions = get_all_solutions(cnf_instance)
     ZC = 0
     nabla_logZ = 0
     for x in all_solutions:
@@ -94,7 +92,7 @@ def compute_nabla_log_ZC_XOR(instance, model, num_samples, input_file, **kwargs)
             nabla_logZ += exp_phi * grad_phi_x
             ZC += exp_phi
     nabla_logZ /= ZC
-    sample_xorsampling = draw_from_xor_sampling(num_samples=num_samples, cnf_instance=instance.cnf, input_file=input_file, prob=prob)
+    sample_xorsampling = draw_from_xor_sampling(num_samples=num_samples, cnf_instance=cnf_instance, input_file=input_file, prob=prob)
     print('done')
     for ratio in range(10, 11):
         size = num_samples * ratio // 10

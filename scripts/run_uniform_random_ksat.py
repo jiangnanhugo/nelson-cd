@@ -140,8 +140,8 @@ if __name__ == "__main__":
                 cnt += 1
         print(cnt, len(lines))
     elif args.algo == 'gibbs_sampling':
-        from prs.sampler.gibbs_sampler.gibbs_mrf import Gibbs_Sampling
-        from prs.utils.cnf2uai import cnf_to_uai
+        from lll.sampler.gibbs_sampler.gibbs_mrf import Gibbs_Sampling
+        from lll.utils.cnf2uai import cnf_to_uai
 
         st = time.time()
         prob = np.ones(formula.nv)
@@ -167,8 +167,8 @@ if __name__ == "__main__":
                 dists.append(freq_dict[k])
 
     elif args.algo == 'xor_sampling':
-        from prs.sampler.xor_sampling.xor_sampler import XOR_Sampling
-        from prs.utils.cnf2uai import cnf_to_uai
+        from lll.sampler.xor_sampling.xor_sampler import XOR_Sampling
+        from lll.utils.cnf2uai import cnf_to_uai
 
         prob = np.ones(formula.nv)
         cnf_to_uai(formula, prob, args.input + ".uniform.xor.uai")

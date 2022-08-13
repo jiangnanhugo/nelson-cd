@@ -40,10 +40,10 @@ def draw_from_gibbs_sampling(num_samples, input_file, cnf_instance, prob):
     return sampled_assignments
 
 
-def draw_from_weightgen(num_samples, input_file, instance, prob, device='cuda'):
-    instance.cnf.to_file(input_file + ".weight")
+def draw_from_weightgen(num_samples, input_file, cnf_instance, prob, device='cuda'):
+    cnf_instance.to_file(input_file + ".weight")
     with open(input_file + ".weight", "a") as fw:
-        for xi in range(instance.cnf.nv):
+        for xi in range(cnf_instance.nv):
             fw.write("w {} {} 0\n".format(xi + 1, 1.0 - prob[xi]))
             fw.write("w -{} {} 0\n".format(xi + 1, prob[xi]))
     kappa = 0.4
@@ -120,10 +120,10 @@ def draw_from_prs_series(algo, Fi, clause2var, weight, bias, prob, num_samples, 
     return samples
 
 
-def draw_from_waps(num_samples, input_file, instance, prob):
-    instance.cnf.to_file(input_file + ".weight")
+def draw_from_waps(num_samples, input_file, cnf_instance, prob):
+    cnf_instance.to_file(input_file + ".weight")
     with open(input_file + ".weight", "a") as fw:
-        for xi in range(instance.cnf.nv):
+        for xi in range(cnf_instance.nv):
             fw.write("w {} {} 0\n".format(xi + 1, 1 - prob[xi]))
             fw.write("w -{} {} 0\n".format(xi + 1, prob[xi]))
     sampler = waps_sampler(cnfFile=input_file + ".weight")

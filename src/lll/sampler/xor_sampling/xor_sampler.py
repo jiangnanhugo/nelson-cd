@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from prs.utils.load_uai import UaiFile
+from lll.utils.load_uai import UaiFile
 
 
 def XOR_Sampling(filename, n_samples, log_folder=''):
