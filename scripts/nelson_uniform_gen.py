@@ -6,7 +6,8 @@ from argparse import ArgumentParser
 from collections import Counter
 
 from pysat.solvers import Solver
-from lll.utils.sat_instance import SAT_Instance
+from pysat.formula import CNF
+from lll.utils.sat_instance import get_formula_matrix_form
 from lll.sampler.nelson.lovasz_sat import *
 import random
 from statsmodels.stats.gof import chisquare
@@ -34,7 +35,7 @@ def lll(samples, prob):
     time_used = 0
     result = []
     for _ in range(samples):
-        batched_assignment, count, ti = constructive_lovasz_local_lemma_sampler(instance, prob=prob)
+        batched_assignment, count, ti = constructive_lovasz_local_lemma_sampler(cnf_instance, prob=prob)
         if len(batched_assignment) > 0:
             result.append(count)
             all_assignments.append("".join([str(xx) for xx in batched_assignment.tolist()]))
@@ -47,7 +48,7 @@ def prs(samples, prob):
     time_used = 0
     result = []
     for _ in range(samples):
-        batched_assignment, count, ti = partial_rejection_sampling_sampler(instance, prob=prob)
+        batched_assignment, count, ti = partial_rejection_sampling_sampler(cnf_instance, prob=prob)
         if len(batched_assignment) > 0:
             result.append(count)
             all_assignments.append("".join([str(xx) for xx in batched_assignment.tolist()]))
@@ -55,14 +56,14 @@ def prs(samples, prob):
     return all_assignments, time_used, result
 
 
-def numpy_nelson(samples, prob):
-    clause2var, weight, bias = instance.get_formular_matrix_form()
+def numpy_nelson(samples, prob, K=5):
+    clause2var, weight, bias = get_formula_matrix_form(cnf_instance, K)
     all_assignments = []
     time_used = 0
     result = []
     # Run several times for benchmarking purposes.
     for _ in range(samples):
-        batched_assignment, count, ti = numpy_neural_lovasz_sampler(instance, clause2var, weight, bias,
+        batched_assignment, count, ti = numpy_neural_lovasz_sampler(cnf_instance, clause2var, weight, bias,
                                                                     prob=prob)
         if len(batched_assignment) > 0:
             result.append(count)
@@ -71,14 +72,14 @@ def numpy_nelson(samples, prob):
     return all_assignments, time_used, result
 
 
-def numpy_batch_nelson(samples, prob, batch_size):
-    clause2var, weight, bias = instance.get_formular_matrix_form()
+def numpy_batch_nelson(samples, prob, batch_size, K=5):
+    clause2var, weight, bias = get_formula_matrix_form(cnf_instance, K)
     all_assignments = []
     time_used = 0
     result = []
     # Run several times for benchmarking purposes.
     for _ in range(samples // batch_size):
-        batched_assignment, count, ti = numpy_batch_neural_lovasz_sampler(instance, clause2var, weight, bias,
+        batched_assignment, count, ti = numpy_batch_neural_lovasz_sampler(cnf_instance, clause2var, weight, bias,
                                                                           prob=prob, batch_size=batch_size)
         if len(batched_assignment) > 0:
             result.append(count)
@@ -86,7 +87,7 @@ def numpy_batch_nelson(samples, prob, batch_size):
                 all_assignments.append("".join([str(xx) for xx in x]))
         time_used += ti
     if samples % batch_size != 0:
-        batched_assignment, count, ti = numpy_batch_neural_lovasz_sampler(instance, clause2var, weight, bias, prob=prob,
+        batched_assignment, count, ti = numpy_batch_neural_lovasz_sampler(cnf_instance, clause2var, weight, bias, prob=prob,
                                                                           batch_size=args.samples % batch_size)
         if len(batched_assignment) > 0:
             result.append(count)
@@ -96,8 +97,8 @@ def numpy_batch_nelson(samples, prob, batch_size):
     return all_assignments, time_used, result
 
 
-def pytorch_nelson(samples, prob):
-    clause2var, weight, bias = instance.get_formular_matrix_form()
+def pytorch_nelson(samples, prob, K=5):
+    clause2var, weight, bias = get_formula_matrix_form(cnf_instance, K)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     clause2var, weight, bias = torch.from_numpy(clause2var).int().to(device), torch.from_numpy(weight).int().to(
         device), torch.from_numpy(bias).int().to(device)
@@ -107,7 +108,7 @@ def pytorch_nelson(samples, prob):
     result = []
     # Run several times for benchmarking purposes.
     for _ in range(samples):
-        batched_assignment, count, ti = pytorch_neural_lovasz_sampler(instance, clause2var, weight, bias,
+        batched_assignment, count, ti = pytorch_neural_lovasz_sampler(cnf_instance, clause2var, weight, bias,
                                                                       device=device, prob=prob)
         if len(batched_assignment) > 0:
             result.append(count)
@@ -117,8 +118,8 @@ def pytorch_nelson(samples, prob):
     return all_assignments, time_used, result
 
 
-def pytorch_batch_nelson(samples, prob, batch_size):
-    clause2var, weight, bias = instance.get_formular_matrix_form()
+def pytorch_batch_nelson(samples, prob, batch_size, K=5):
+    clause2var, weight, bias = get_formula_matrix_form(cnf_instance, K)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     clause2var, weight, bias = torch.from_numpy(clause2var).int().to(device), torch.from_numpy(weight).int().to(
         device), torch.from_numpy(bias).int().to(device)
@@ -133,7 +134,7 @@ def pytorch_batch_nelson(samples, prob, batch_size):
     # Run several times for benchmarking purposes.
     for _ in range(samples // batch_size):
 
-        batched_assignment, count, ti = pytorch_batch_neural_lovasz_sampler(instance, clause2var, weight, bias,
+        batched_assignment, count, ti = pytorch_batch_neural_lovasz_sampler(cnf_instance, clause2var, weight, bias,
                                                                             device=device, prob=prob, batch_size=batch_size)
         if len(batched_assignment) > 0:
             result.append(count)
@@ -141,7 +142,7 @@ def pytorch_batch_nelson(samples, prob, batch_size):
                 all_assignments.append("".join([str(xx) for xx in x]))
         time_used += ti
     if samples % batch_size != 0:
-        batched_assignment, count, ti = pytorch_batch_neural_lovasz_sampler(instance, clause2var, weight, bias, device=device, prob=prob,
+        batched_assignment, count, ti = pytorch_batch_neural_lovasz_sampler(cnf_instance, clause2var, weight, bias, device=device, prob=prob,
                                                                             batch_size=args.samples % batch_size)
         if len(batched_assignment) > 0:
             result.append(count)
@@ -153,14 +154,14 @@ def pytorch_batch_nelson(samples, prob, batch_size):
 
 if __name__ == "__main__":
     args = get_arguments()
-    instance = SAT_Instance.from_cnf_file(args.input, args.K)
+    cnf_instance = CNF(args.input, args.K)
 
-    solver = Solver(bootstrap_with=instance.cnf.clauses)
+    solver = Solver(bootstrap_with=cnf_instance.clauses)
     batch_size = args.batch_size
 
-    prob = np.ones(instance.cnf.nv) * 0.5
+    prob = np.ones(cnf_instance.nv) * 0.5
     if args.weighted == 'weighted':
-        prob = np.random.random(instance.cnf.nv)
+        prob = np.random.random(cnf_instance.nv)
 
     if args.algo == 'lll':
         all_assignments, time_used, result = lll(samples=args.samples, prob=prob)

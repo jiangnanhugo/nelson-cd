@@ -102,62 +102,37 @@ def compute_nabla_log_ZC_XOR(cnf_instance, model, num_samples, input_file, **kwa
     #
 
 
-def evaluation(formula, clause2var, weight, bias, algo, neural_net, preferred_inputs, less_preferred_inputs, list_of_Ks=[5, 10, 20],
+def evaluation(formula, clause2var, weight, bias, algo, neural_net, preferred_inputs, less_preferred_inputs, list_of_Ks=[5, 10, 20, 100],
                **kwargs):
-    # compute log-likelihood
-    # see Handbook of Satisfiability Chapter 20
-    # URL: https://www.cs.cornell.edu/~sabhar/chapters/ModelCounting-SAT-Handbook-prelim.pdf Page 11
-    num_samples = kwargs['num_samples']
-    input_file = kwargs['input_file']
-    samples = [torch.from_numpy(preferred_inputs[0]).float().to(device).reshape(1, -1), ]
+    with torch.no_grad():
+        # compute log-likelihood
+        # see Handbook of Satisfiability Chapter 20
+        # URL: https://www.cs.cornell.edu/~sabhar/chapters/ModelCounting-SAT-Handbook-prelim.pdf Page 11
+        num_samples = kwargs['num_samples']
+        input_file = kwargs['input_file']
+        samples = [torch.from_numpy(x).float().to(device).reshape(1, -1) for x in preferred_inputs]
+        new_inputs = torch.concat(samples, dim=0).to(device)
+        phi = neural_net(new_inputs)
+        pseudo_loss = torch.sum(phi) / len(phi)
+        print("log-likelihood: {:.6f}".format(- pseudo_loss))
 
-    # prob = neural_net.get_prob()
-    # if algo == 'quicksampler':
-    #     samples += draw_from_quicksampler(num_samples, input_file)
-    # elif args.algo == 'unigen':
-    #     samples += draw_from_unigen(num_samples, input_file)
-    # elif args.algo == 'cmsgen':
-    #     samples += draw_from_cmsgen(num_samples, input_file)
-    # elif args.algo == 'kus':
-    #     samples += draw_from_kus(num_samples, input_file)
-    # elif args.algo == 'waps':
-    #     samples += draw_from_waps(num_samples, input_file, formula, prob)
-    # elif args.algo == 'weightgen':
-    #     samples += draw_from_weightgen(args.num_samples, args.input_file, formula, prob)
-    # elif algo in ['lll', 'mc', 'lll', 'nelson', 'nelson_batch']:
-    #     samples += draw_from_prs_series(args.algo, formula, clause2var, weight, bias, prob, num_samples)
-    #     samples = [x.reshape(1, -1) for x in samples]
-
-    new_inputs = torch.concat(samples, dim=0).to(device)
-    phi = neural_net(new_inputs)
-    pseudo_loss = phi[0]  # - torch.sum(phi[1:]) / (len(phi) - 1)
-    uni_samples = []
-    while len(uni_samples) <= num_samples:
-        assignment, count, time_used = pytorch_neural_lovasz_sampler(formula, clause2var, weight, bias, device=device, prob=0.5)
-
-        if len(assignment) > 0:
-            uni_samples.append(assignment.reshape(1, -1))
-    averaged_ratio = num_samples / torch.sum(torch.concat(uni_samples, dim=0).to(device), dim=0)
-    log_model_count = torch.sum(torch.log(averaged_ratio))
-    print("log-likelihood: {:.6f}".format(- pseudo_loss))
-
-    # compute mean averaged precision (MAP@K)
-    test_samples = []
-    for xi in preferred_inputs:
-        test_samples.append(torch.from_numpy(xi).float().to(device).reshape(1, -1))
-    for xi in less_preferred_inputs:
-        test_samples.append(torch.from_numpy(xi).float().to(device).reshape(1, -1))
-    new_inputs = torch.concat(test_samples, dim=0).to(device)
-    phi = neural_net(new_inputs)
-    sorted_idxes = torch.argsort(phi)
-    print("MAP@{}".format(list_of_Ks), end=": ")
-    for k in list_of_Ks:
-        k = min(k, len(sorted_idxes))
-        cnt = 0
-        map = 0
-        for idx, i in enumerate(sorted_idxes[:k]):
-            if i < len(preferred_inputs):
-                cnt += 1
-                map += cnt / (idx + 1)
-        print("{:.6f}".format(map / cnt), end=" ")
-    print()
+        # compute mean averaged precision (MAP@K)
+        test_samples = []
+        for xi in preferred_inputs:
+            test_samples.append(torch.from_numpy(xi).float().to(device).reshape(1, -1))
+        for xi in less_preferred_inputs:
+            test_samples.append(torch.from_numpy(xi).float().to(device).reshape(1, -1))
+        new_inputs = torch.concat(test_samples, dim=0).to(device)
+        phi = neural_net(new_inputs)
+        sorted_idxes = torch.argsort(phi)
+        print("MAP@{}".format(list_of_Ks), end=": ")
+        for k in list_of_Ks:
+            k = min(k, len(sorted_idxes))
+            cnt = 0.001
+            map = 0
+            for idx, i in enumerate(sorted_idxes[:k]):
+                if i < len(preferred_inputs):
+                    cnt += 1
+                    map += cnt / (idx + 1)
+            print("{:.4f}".format(100 * map / cnt), end=" ")
+        print()

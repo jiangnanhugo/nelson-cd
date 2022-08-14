@@ -81,8 +81,6 @@ def draw_from_prs_series(algo, Fi, clause2var, weight, bias, prob, num_samples, 
         sampler = constructive_lovasz_local_lemma_sampler
     elif algo == 'mc':
         sampler = Monte_Carlo_sampler
-    elif algo == 'lll':
-        sampler = partial_rejection_sampling_sampler
     elif algo == 'numpy':
         clause2var, weight, bias = Fi.get_formular_matrix_form()
 
@@ -93,7 +91,7 @@ def draw_from_prs_series(algo, Fi, clause2var, weight, bias, prob, num_samples, 
                 samples.append(torch.from_numpy(assignment))
     elif algo == 'nelson':
         samples = []
-        while len(samples) <= num_samples:
+        while len(samples) < num_samples:
             assignment, count, _ = pytorch_neural_lovasz_sampler(Fi, clause2var, weight, bias, device=device, prob=prob)
             if len(assignment) > 0:
                 samples.append(assignment.reshape(1, -1))
@@ -216,7 +214,7 @@ def draw_from_cmsgen(num_samples, input_file):
             # print(li)
             sampled_assig = [1 if int(x) > 0 else 0 for x in one_sol]
             sampled_assignments.append(torch.from_numpy(np.array(sampled_assig)).to(device).reshape(1, -1))
-    print(len(sampled_assignments), sampled_assignments[0].shape)
+    # print(len(sampled_assignments), sampled_assignments[0].shape)
     return sampled_assignments
 
 
