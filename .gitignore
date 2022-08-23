@@ -1,0 +1,10 @@
+/src/build/lib/prs/
+/src/prs.egg-info/
+/src/dist/prs-1.0-py3.9.egg
+/results/plots/.ipynb_checkpoints/
+/results/uniform_sample/rand-k-sat/
+/results/weighted_sample/rand-k-sat/
+/datasets/
+/.idea/
+/datasets/G2SAT/
+

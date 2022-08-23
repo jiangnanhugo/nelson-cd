@@ -1,9 +1,0 @@
-[submodule "CNF/CNF/pytorch-neurosat"]
-	path = CNF/CNF/pytorch-neurosat
-	url = https://github.com/ryanzhangfan/NeuroSAT
-[submodule "CNF/pytorch-neurosat"]
-	path = CNF/pytorch-neurosat
-	url = https://github.com/ryanzhangfan/NeuroSAT
-[submodule "CNF/transformer-neurosat"]
-	path = CNF/transformer-neurosat
-	url = https://github.com/l0rem1psum/transformer-neurosat
