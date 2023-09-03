@@ -1,4 +1,6 @@
-# Experiments of Neural Lovasz Sampler
+# Learning Markov Random Fields for Combinatorial Structures via Sampling through Lov\'asz Local Lemma #
+
+full paper: https://arxiv.org/abs/2212.00296
 
 
 ## Requirements
