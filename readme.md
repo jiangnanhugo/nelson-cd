@@ -4,18 +4,12 @@ full paper: https://arxiv.org/abs/2212.00296
 
 
 ## Requirements
-The script relies on zsh, you need to install it first.
-```bash
-sudo apt install zsh
-chsh -s $(which zsh)
-sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-```
-
-install pytroch
+the code needs to install pytroch
 ```bash
 pip install torch
 ```
 
+### Datasets
 to generate the Rand-k-cnf dataset we need
 ```python
 pip install cnfgen
